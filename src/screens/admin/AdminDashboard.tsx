@@ -53,24 +53,28 @@ const AdminDashboard: React.FC = () => {
       setLoading(true);
 
       // Load statistics and health data
-      const statsResult = await apiService.getStatistics();
-      const healthResult = await apiService.getSystemHealth();
+      const statsResponse = await apiService.getStatistics();
+      const healthResponse = await apiService.getSystemHealth();
 
-      if (statsResult && healthResult) {
+      if (statsResponse.success && statsResponse.data && healthResponse.success && healthResponse.data) {
         setStats({
-          totalUsers: healthResult.users?.total || 0,
-          activeUsers: healthResult.users?.active || 0,
-          pendingUsers: healthResult.users?.pending || 0,
-          totalVehicles: healthResult.vehicles?.total || 0,
-          parkedVehicles: healthResult.vehicles?.parked || 0,
-          totalRequests: statsResult.overview?.totalRequests || 0,
-          requestsByStatus: statsResult.requestsByStatus || [],
-          vehiclesByStatus: statsResult.vehiclesByStatus || [],
-          feedbackStats: statsResult.feedbackStats || { avgRating: 0, totalFeedback: 0 },
+          totalUsers: healthResponse.data.users?.total || 0,
+          activeUsers: healthResponse.data.users?.active || 0,
+          pendingUsers: healthResponse.data.users?.pending || 0,
+          totalVehicles: healthResponse.data.vehicles?.total || 0,
+          parkedVehicles: healthResponse.data.vehicles?.parked || 0,
+          totalRequests: statsResponse.data.overview?.totalRequests || 0,
+          requestsByStatus: statsResponse.data.requestsByStatus || [],
+          vehiclesByStatus: statsResponse.data.vehiclesByStatus || [],
+          feedbackStats: statsResponse.data.feedbackStats || { avgRating: 0, totalFeedback: 0 },
         });
+      } else {
+        console.error('Failed to load dashboard data:', statsResponse.message || healthResponse.message);
+        Alert.alert('Error', statsResponse.message || healthResponse.message || 'Failed to load dashboard data');
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      Alert.alert('Error', 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -90,21 +94,28 @@ const AdminDashboard: React.FC = () => {
   const loadPendingUsers = async () => {
     try {
       const result = await apiService.getPendingRegistrations();
-      if (result) {
-        setPendingUsers(result || []);
+      if (result.success && result.data && Array.isArray(result.data)) {
+        setPendingUsers(result.data);
+      } else {
+        console.error('Failed to load pending users:', result.message);
+        setPendingUsers([]);
       }
     } catch (error) {
       console.error('Error loading pending users:', error);
+      setPendingUsers([]);
     }
   };
 
   const handleApproveUser = async (userId: string, role: string) => {
     try {
       const result = await apiService.approveUser(userId, role);
-      if (result) {
-        Alert.alert('Success', 'User approved successfully');
+      if (result.success) {
+        Alert.alert('Success', result.message || 'User approved successfully');
         await loadDashboardData();
         await loadPendingUsers();
+      } else {
+        console.error('Failed to approve user:', result.message);
+        Alert.alert('Error', result.message || 'Failed to approve user');
       }
     } catch (error) {
       console.error('Error approving user:', error);
@@ -124,10 +135,13 @@ const AdminDashboard: React.FC = () => {
           onPress: async () => {
             try {
               const result = await apiService.rejectUser(userId);
-              if (result) {
-                Alert.alert('Success', 'User rejected successfully');
+              if (result.success) {
+                Alert.alert('Success', result.message || 'User rejected successfully');
                 await loadPendingUsers();
                 await loadDashboardData();
+              } else {
+                console.error('Failed to reject user:', result.message);
+                Alert.alert('Error', result.message || 'Failed to reject user');
               }
             } catch (error) {
               console.error('Error rejecting user:', error);

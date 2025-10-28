@@ -1,0 +1,61 @@
+# Node modules
+node_modules/
+
+# Build outputs
+/build
+android/app/build/
+android/build/
+ios/build/
+
+# Expo
+.expo/
+.expo-shared/
+
+# Temporary files
+*.tmp
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# React Native
+index.ios.js
+index.android.js
+
+# Metro bundler
+.metro/
+
+# Testing
+coverage/
+
+# Environment variables
+.env
+*.env
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Gradle
+.gradle/
+
+# CocoaPods
+ios/Pods/
+
+# Xcode
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+*.moved-aside
+
+# Android
+android/app/src/main/assets/index.android.bundle
+android/app/src/main/assets/index.android.bundle.meta

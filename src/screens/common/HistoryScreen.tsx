@@ -96,7 +96,7 @@ const HistoryScreen: React.FC = () => {
       const userData = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA);
       if (userData) {
         const user = JSON.parse(userData);
-        let response: any = { history: [] };
+        let response: { success: boolean; data: any; message: string; error: any; timestamp: string };
 
         // Build query parameters for API search
         const queryParams = new URLSearchParams();
@@ -110,17 +110,32 @@ const HistoryScreen: React.FC = () => {
 
         // Use different API endpoints based on user role
         if (user.role === 'driver') {
-          response.history = await apiService.getDriverHistory();
+          response = await apiService.getDriverHistory();
         } else if (user.role === 'admin') {
           const queryObj = Object.fromEntries(queryParams.entries());
           response = await apiService.getComprehensiveHistory(queryObj);
         } else if (user.role === 'supervisor' || user.role === 'valet_supervisor' || user.role === 'parking_location_supervisor') {
-          response.history = await apiService.getSupervisorHistory();
+          response = await apiService.getSupervisorHistory();
         } else {
-          response.history = await apiService.getDriverHistory();
+          response = await apiService.getDriverHistory();
         }
 
-        const data = response.history || [];
+        // Check if the API call was successful
+        if (!response.success) {
+          console.error('API Error:', response.message || response.error);
+          Alert.alert('Error', response.message || 'Failed to load history');
+          return;
+        }
+
+        // Extract data from the standardized response
+        const data = response.data?.history || response.data || [];
+
+        // Ensure data is an array
+        if (!Array.isArray(data)) {
+          console.error('API response data is not an array:', data);
+          Alert.alert('Error', 'Invalid response format');
+          return;
+        }
 
         // Transform API data to better utilize the available fields
         const transformedData: any[] = data.map((item: any) => ({
@@ -152,7 +167,7 @@ const HistoryScreen: React.FC = () => {
           setHistory(prev => [...prev, ...transformedData]);
         }
 
-        // Update pagination state
+        // Update pagination state - check if more data might be available
         setHasMorePages(data.length === 20);
         setCurrentPage(page);
 

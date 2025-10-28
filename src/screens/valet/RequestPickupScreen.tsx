@@ -62,9 +62,10 @@ const RequestPickupScreen: React.FC = () => {
 
       const result = await apiService.getParkedVehicles();
 
-      if (result && Array.isArray(result)) {
+      // Handle standardized API response format
+      if (result.success && result.data && Array.isArray(result.data)) {
         // Transform API response to match our interface
-        const transformedVehicles: ParkedVehicle[] = result.map((vehicle: any) => ({
+        const transformedVehicles: ParkedVehicle[] = result.data.map((vehicle: any) => ({
           id: vehicle.id || vehicle._id,
           _id: vehicle._id,
           number: vehicle.number,
@@ -80,7 +81,8 @@ const RequestPickupScreen: React.FC = () => {
         }));
         setParkedVehicles(transformedVehicles);
       } else {
-        Alert.alert('Error', 'Failed to load parked vehicles');
+        console.error('Failed to load parked vehicles:', result.message);
+        Alert.alert('Error', result.message || 'Failed to load parked vehicles');
       }
     } catch (error) {
       console.error('Error loading parked vehicles:', error);
@@ -103,10 +105,11 @@ const RequestPickupScreen: React.FC = () => {
         notes: `Pickup requested for ${vehicle.number} - ${vehicle.make} ${vehicle.model}`,
       });
 
-      if (result) {
+      // Check standardized API response
+      if (result.success) {
         Alert.alert(
           'Success',
-          `Pickup request created for ${vehicle.number}!`,
+          result.message || `Pickup request created for ${vehicle.number}!`,
           [
             {
               text: 'OK',
@@ -117,6 +120,10 @@ const RequestPickupScreen: React.FC = () => {
             },
           ]
         );
+      } else {
+        // Handle failure case with standardized error response
+        console.error('Failed to create pickup request:', result.message);
+        Alert.alert('Error', result.message || 'Failed to create pickup request. Please try again.');
       }
     } catch (error: any) {
       console.error('Error creating pickup request:', error);

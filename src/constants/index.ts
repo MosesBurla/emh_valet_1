@@ -79,7 +79,7 @@ export const USER_ROLES = {
   ADMIN: 'admin',
   DRIVER: 'driver',
   VALET_SUPERVISOR: 'valet_supervisor',
-  parking_location_supervisor: 'parking_location_supervisor',
+  PARKING_LOCATION_SUPERVISOR: 'parking_location_supervisor',
 } as const;
 
 export const REQUEST_STATUS = {
@@ -87,6 +87,10 @@ export const REQUEST_STATUS = {
   ACCEPTED: 'accepted',
   IN_PROGRESS: 'in_progress',
   COMPLETED: 'completed',
+  VERIFIED: 'verified',
+  HANDED_OVER: 'handed_over',
+  SELF_PARKED: 'self_parked',
+  SELF_PICKUP: 'self_pickup',
   CANCELLED: 'cancelled',
 } as const;
 
@@ -117,43 +121,53 @@ export const STORAGE_KEYS = {
 
 export const API_ENDPOINTS = {
   AUTH: {
-    LOGIN: '/auth/login',
     REGISTER: '/auth/register',
+    LOGIN: '/auth/login',
+    SEND_OTP: '/auth/send-otp',
     VERIFY_OTP: '/auth/verify-otp',
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
   },
-  REQUESTS: {
-    LIST: '/requests',
-    CREATE: '/requests',
-    ACCEPT: '/requests/:id/accept',
-    UPDATE: '/requests/:id',
-    COMPLETE: '/requests/:id/complete',
-    CANCEL: '/requests/:id/cancel',
+  ADMIN: {
+    PENDING_REGISTRATIONS: '/admin/pending-registrations',
+    APPROVE_USER: '/admin/approve-user',
+    REJECT_USER: '/admin/reject-user',
+    EDIT_USER: '/admin/edit-user',
+    GET_ALL_USERS: '/admin/get-all-users',
+    ADD_PARKING_LOCATION: '/admin/add-parking-location',
+    EDIT_PARKING_LOCATION: '/admin/edit-parking-location',
+    DELETE_PARKING_LOCATION: '/admin/delete-parking-location',
+    GET_PARKING_LOCATIONS: '/admin/parking-locations',
+    STATISTICS: '/admin/statistics',
+    HISTORY: '/admin/history',
+    EXPORT_HISTORY: '/admin/export-history',
+    SYSTEM_HEALTH: '/admin/system-health',
   },
-  HISTORY: {
-    LIST: '/history',
-    EXPORT: '/history/export',
+  DRIVER: {
+    INCOMING_REQUESTS: '/driver/incoming-requests',
+    ACCEPT_REQUEST: '/driver/accept-request',
+    MARK_PARKED: '/driver/mark-parked',
+    MARK_HANDED_OVER: '/driver/mark-handed-over',
+    HISTORY: '/driver/history',
+    TODAY_PARKED_VEHICLES: '/driver/today-parked-vehicles',
+    STATS: '/driver/stats',
+    PARKING_LOCATIONS: '/driver/parking-locations',
   },
-  USERS: {
-    LIST: '/users',
-    CREATE: '/users',
-    UPDATE: '/users/:id',
-    APPROVE: '/users/:id/approve',
-    REJECT: '/users/:id/reject',
+  SUPERVISOR: {
+    CREATE_PARK_REQUEST: '/supervisor/create-park-request',
+    CREATE_PICKUP_REQUEST: '/supervisor/create-pickup-request',
+    VERIFY_PARK_REQUEST: '/supervisor/verify-park-request',
+    MARK_SELF_PICKUP: '/supervisor/mark-self-pickup',
+    PARKED_VEHICLES: '/supervisor/parked-vehicles',
+    TODAY_PARKED_VEHICLES: '/supervisor/today-parked-vehicles',
+    HISTORY: '/supervisor/history',
+    DASHBOARD_STATS: '/supervisor/dashboard-stats',
   },
-  STATS: {
-    DASHBOARD: '/stats/dashboard',
-    EXPORT: '/stats/export',
+  COMMON: {
+    PARKING_LOCATIONS: '/common/parking-locations',
+    SEARCH_VEHICLES: '/common/vehicles/search',
   },
-  LOCATIONS: {
-    LIST: '/locations',
-    DETAILS: '/locations/:id',
-  },
-  NOTIFICATIONS: {
-    LIST: '/notifications',
-    MARK_READ: '/notifications/:id/read',
-  },
+  HEALTH: '/health',
 } as const;
 
 export const VALIDATION_RULES = {

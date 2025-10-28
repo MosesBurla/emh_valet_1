@@ -48,18 +48,19 @@ const ValetDashboard: React.FC = () => {
       setLoading(true);
 
       // Load dashboard statistics
-      const statsResult = await apiService.getValetDashboardStats?.();
-      const parkedResult = await apiService.getParkedVehicles();
+      const statsResponse = await apiService.getValetDashboardStats?.();
+      const parkedResponse = await apiService.getParkedVehicles();
 
-      if (statsResult) {
-        setStats(statsResult);
+      if (statsResponse && statsResponse.success) {
+        setStats(statsResponse.data);
       }
 
-      if (parkedResult && Array.isArray(parkedResult)) {
-        setParkedVehicles(parkedResult);
+      if (parkedResponse && parkedResponse.success && Array.isArray(parkedResponse.data)) {
+        setParkedVehicles(parkedResponse.data);
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      // Could add error alert using error.message from standardized response
     } finally {
       setLoading(false);
     }

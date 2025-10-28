@@ -128,12 +128,13 @@ const LoginScreen: React.FC = () => {
       // Verify OTP with backend API
       const result = await apiService.verifyOtp(formData.phone, formData.otp);
 
-      if (result.success && result.token && result.user) {
-        console.log('Login successful, storing auth data:', result.user);
+      // Check standardized API response
+      if (result.success && result.data) {
+        console.log('Login successful, storing auth data:', result.data.user);
 
         // Store auth token and user data
-        await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, result.token);
-        await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(result.user));
+        await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, result.data.token);
+        await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(result.data.user));
 
         console.log('Auth data stored, emitting event and navigating');
 
@@ -145,7 +146,7 @@ const LoginScreen: React.FC = () => {
           DeviceEventEmitter.emit('authStateChanged', {
             authenticated: true,
             timestamp: new Date().toISOString(),
-            user: result.user
+            user: result.data.user
           });
         } catch (error) {
           console.error('Could not emit auth state change event:', error);
@@ -184,7 +185,7 @@ const LoginScreen: React.FC = () => {
       // Send OTP via backend API
       const result = await apiService.sendOtp(formData.phone);
 
-      if (result.success) {
+      if (result.success && result.data) {
         // Reset states when sending OTP
         setShowChangePhone(false);
         setOtpSent(true);
@@ -218,8 +219,6 @@ const LoginScreen: React.FC = () => {
     setShowChangePhone(false);
     setVerificationId(null);
   };
-
-
 
   if (loading) {
     return (
@@ -416,12 +415,12 @@ const LoginScreen: React.FC = () => {
               </Card>
 
             </Animated.View>
-            
+
           </ScrollView>
 
-          
+
         </KeyboardAvoidingView>
-        
+
       </SafeAreaView>
     </View>
   );
@@ -510,9 +509,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 16,
   },
-  cardGradient: {
-    flex: 1,
-  },
   cardContent: {
     padding: SPACING.lg,
   },
@@ -522,7 +518,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xs,
   },
   inputContainerFocused: {
-    backgroundColor: COLORS.primaryLight + '10',
+    backgroundColor: COLORS.primary + '10',
     borderRadius: BORDER_RADIUS.lg,
   },
   inputLabel: {
@@ -596,7 +592,7 @@ const styles = StyleSheet.create({
   registerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    
+
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.lg,

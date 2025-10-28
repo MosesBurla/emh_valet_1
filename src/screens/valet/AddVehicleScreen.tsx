@@ -16,8 +16,10 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 import AccessibleButton from '../../components/AccessibleButton';
 import LoadingSkeleton from '../../components/LoadingSkeleton';
+import VehicleAutocomplete from '../../components/VehicleAutocomplete';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants';
-import { apiService } from '../../services/ApiService';
+import { apiService, Vehicle } from '../../services/ApiService';
+import ApiResponse from '../../services/ApiResponse';
 
 type RootStackParamList = {
   AddVehicle: undefined;
@@ -34,11 +36,26 @@ const AddVehicleScreen: React.FC = () => {
     customerName: '',
     licensePlate: '',
   });
+  const [resetAutocomplete, setResetAutocomplete] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
+    }));
+
+    // Reset selection state when user manually types in license plate field
+    if (field === 'licensePlate') {
+      setResetAutocomplete(prev => !prev); // Toggle to trigger reset
+    }
+  };
+
+  const handleVehicleSelect = (vehicle: Vehicle) => {
+    // Auto-populate customer information when a vehicle is selected
+    setFormData(prev => ({
+      ...prev,
+      phoneNumber: vehicle.ownerPhone || '',
+      customerName: vehicle.ownerName || '',
     }));
   };
 
@@ -63,25 +80,24 @@ const AddVehicleScreen: React.FC = () => {
     return true;
   };
 
+
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
+    setLoading(true);
     try {
-      setLoading(true);
-
       const result = await apiService.createParkRequest({
         phoneNumber: formData.phoneNumber,
         customerName: formData.customerName,
         licensePlate: formData.licensePlate,
-        make: '', // Optional fields
-        model: '',
-        color: '',
+        // make, model, color are now optional in the API service
       });
 
-      if (result) {
+      // Check standardized API response
+      if (result.success) {
         Alert.alert(
           'Success',
-          'Vehicle park request created successfully!',
+          result.message || 'Vehicle park request created successfully!',
           [
             {
               text: 'OK',
@@ -89,13 +105,130 @@ const AddVehicleScreen: React.FC = () => {
             },
           ]
         );
+      } else {
+        // Handle failure case with standardized error response
+        const errorResponse = ApiResponse.error(
+          result.error || 'RequestError',
+          result.message || 'Failed to create park request. Please try again.'
+        );
+        Alert.alert('Error', errorResponse.message);
       }
     } catch (error: any) {
       console.error('Error creating park request:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'Failed to create park request. Please try again.'
-      );
+
+      // Handle errors with standardized format using ApiResponse helper
+      const errorMessage = error?.error || 'Failed to create park request. Please try again.';
+      const statusCode = error?.status;
+
+      // Handle duplicate park request error
+      if (errorMessage.includes('Park request already exists for this vehicle') ||
+          errorMessage.includes('duplicate') || errorMessage.includes('already exists')) {
+        const duplicateResponse = ApiResponse.conflict(
+          'A park request already exists for this vehicle. Please check the vehicle status or contact support.'
+        );
+        Alert.alert(
+          'Duplicate Request',
+          duplicateResponse.message,
+          [
+            {
+              text: 'OK',
+              style: 'default',
+            },
+          ]
+        );
+      }
+      // Handle validation errors (400 status code)
+      else if (statusCode === 400) {
+        const validationResponse = ApiResponse.badRequest(
+          errorMessage || 'Please check your input data and try again.'
+        );
+        Alert.alert(
+          'Validation Error',
+          validationResponse.message,
+          [
+            {
+              text: 'OK',
+              style: 'default',
+            },
+          ]
+        );
+      }
+      // Handle unauthorized errors (401 status code)
+      else if (statusCode === 401) {
+        const authResponse = ApiResponse.unauthorized(
+          'Please log in again to continue.'
+        );
+        Alert.alert(
+          'Authentication Required',
+          authResponse.message,
+          [
+            {
+              text: 'OK',
+              style: 'default',
+            },
+          ]
+        );
+      }
+      // Handle forbidden errors (403 status code)
+      else if (statusCode === 403) {
+        const forbiddenResponse = ApiResponse.forbidden(
+          'You do not have permission to perform this action.'
+        );
+        Alert.alert(
+          'Access Denied',
+          forbiddenResponse.message,
+          [
+            {
+              text: 'OK',
+              style: 'default',
+            },
+          ]
+        );
+      }
+      // Handle not found errors (404 status code)
+      else if (statusCode === 404) {
+        const notFoundResponse = ApiResponse.notFound(
+          'The requested service could not be found. Please contact support.'
+        );
+        Alert.alert(
+          'Service Not Found',
+          notFoundResponse.message,
+          [
+            {
+              text: 'OK',
+              style: 'default',
+            },
+          ]
+        );
+      }
+      // Handle server errors (500 status code)
+      else if (statusCode >= 500) {
+        const serverResponse = ApiResponse.error(
+          'ServerError',
+          'Server is temporarily unavailable. Please try again later.'
+        );
+        Alert.alert(
+          'Server Error',
+          serverResponse.message,
+          [
+            {
+              text: 'OK',
+              style: 'default',
+            },
+          ]
+        );
+      }
+      // Handle other types of errors with generic error response
+      else {
+        const genericResponse = ApiResponse.error(
+          'RequestError',
+          errorMessage
+        );
+        Alert.alert(
+          'Error',
+          genericResponse.message
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -138,16 +271,15 @@ const AddVehicleScreen: React.FC = () => {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Vehicle Details</Text>
 
-              <TextInput
-                label="License Plate *"
+              <VehicleAutocomplete
                 value={formData.licensePlate}
                 onChangeText={(value) => handleInputChange('licensePlate', value)}
-                mode="outlined"
-                autoCapitalize="characters"
+                onVehicleSelect={handleVehicleSelect}
+                placeholder="Enter license plate (min 4 characters for search)"
                 style={styles.input}
-                placeholder="ABC 123"
-                accessibilityLabel="License plate input"
-                accessibilityHint="Enter vehicle license plate number (required)"
+                maxLength={6}
+                stopSearchAfterSelect={true}
+                resetSelection={resetAutocomplete}
               />
             </View>
 

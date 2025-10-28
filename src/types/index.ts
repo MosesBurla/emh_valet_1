@@ -41,6 +41,34 @@ export interface ParkingRequest {
   verifiedBy?: string;
   verificationPhoto?: string;
   totalCost?: number;
+  // Additional fields from API response
+  locationFrom?: {
+    lat: number;
+    lng: number;
+  };
+  vehicleId?: {
+    _id: string;
+    ownerName: string;
+    ownerPhone: string;
+    make: string;
+    model: string;
+    number: string;
+    color: string;
+    status: string;
+    isVerified: boolean;
+    verifiedBy?: string;
+    verifiedAt?: string;
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
+  };
+  createdBy: string;
+  isSelfParked: boolean;
+  isSelfPickup: boolean;
+  notes?: string;
+  updatedAt: string;
+  __v: number;
 }
 
 export interface ParkingHistory {

@@ -54,8 +54,14 @@ const UserManagementScreen: React.FC = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const data = await apiService.getAllUsers();
-      setUsers(Array.isArray(data) ? data : []);
+      const result = await apiService.getAllUsers();
+      if (result.success && result.data && Array.isArray(result.data)) {
+        setUsers(result.data);
+      } else {
+        console.error('Failed to load users:', result.message);
+        Alert.alert('Error', result.message || 'Failed to load users');
+        setUsers([]);
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to load users');
       setUsers([]);
@@ -66,8 +72,14 @@ const UserManagementScreen: React.FC = () => {
 
   const loadPendingUsers = async () => {
     try {
-      const data = await apiService.getPendingRegistrations();
-      setPendingUsers(Array.isArray(data) ? data : []);
+      const result = await apiService.getPendingRegistrations();
+      if (result.success && result.data && Array.isArray(result.data)) {
+        setPendingUsers(result.data);
+      } else {
+        console.error('Failed to load pending users:', result.message);
+        Alert.alert('Error', result.message || 'Failed to load pending users');
+        setPendingUsers([]);
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to load pending users');
       setPendingUsers([]);
@@ -76,9 +88,14 @@ const UserManagementScreen: React.FC = () => {
 
   const handleApproveUser = async (userId: string, role: string) => {
     try {
-      await apiService.approveUser(userId, role);
-      Alert.alert('Success', 'User approved successfully');
-      await loadData();
+      const result = await apiService.approveUser(userId, role);
+      if (result.success) {
+        Alert.alert('Success', result.message || 'User approved successfully');
+        await loadData();
+      } else {
+        console.error('Failed to approve user:', result.message);
+        Alert.alert('Error', result.message || 'Failed to approve user');
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to approve user');
     }
@@ -95,9 +112,14 @@ const UserManagementScreen: React.FC = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await apiService.rejectUser(userId);
-              Alert.alert('Success', 'User rejected successfully');
-              await loadPendingUsers();
+              const result = await apiService.rejectUser(userId);
+              if (result.success) {
+                Alert.alert('Success', result.message || 'User rejected successfully');
+                await loadPendingUsers();
+              } else {
+                console.error('Failed to reject user:', result.message);
+                Alert.alert('Error', result.message || 'Failed to reject user');
+              }
             } catch (error) {
               Alert.alert('Error', 'Failed to reject user');
             }
@@ -111,11 +133,16 @@ const UserManagementScreen: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      await apiService.editUser(selectedUser._id, editForm);
-      Alert.alert('Success', 'User updated successfully');
-      setShowEditModal(false);
-      setSelectedUser(null);
-      await loadUsers();
+      const result = await apiService.editUser(selectedUser._id, editForm);
+      if (result.success) {
+        Alert.alert('Success', result.message || 'User updated successfully');
+        setShowEditModal(false);
+        setSelectedUser(null);
+        await loadUsers();
+      } else {
+        console.error('Failed to update user:', result.message);
+        Alert.alert('Error', result.message || 'Failed to update user');
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to update user');
     }
@@ -135,11 +162,16 @@ const UserManagementScreen: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      await apiService.editUser(selectedUser._id, { role: newRole });
-      Alert.alert('Success', 'User role updated successfully');
-      setShowRoleModal(false);
-      setSelectedUser(null);
-      await loadUsers();
+      const result = await apiService.editUser(selectedUser._id, { role: newRole });
+      if (result.success) {
+        Alert.alert('Success', result.message || 'User role updated successfully');
+        setShowRoleModal(false);
+        setSelectedUser(null);
+        await loadUsers();
+      } else {
+        console.error('Failed to update user role:', result.message);
+        Alert.alert('Error', result.message || 'Failed to update user role');
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to update user role');
     }

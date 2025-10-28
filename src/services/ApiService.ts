@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../constants';
+import ApiResponse from './ApiResponse';
 
-// API responses return data directly
+// All API requests return standardized response format with success, data, message, error, timestamp fields
 
 export interface User {
   _id: string;
@@ -9,7 +10,7 @@ export interface User {
   name: string;
   phone: string;
   email?: string;
-  role: 'admin' | 'driver' | 'owner' | 'supervisor' | 'valet_supervisor' | 'parking_location_supervisor';
+  role: 'admin' | 'driver' | 'valet_supervisor' | 'parking_location_supervisor';
   photoUrl?: string;
   rating?: number;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
@@ -21,6 +22,8 @@ export interface User {
 export interface Vehicle {
   id: string;
   ownerId: string;
+  ownerName?: string;
+  ownerPhone?: string;
   make: string;
   model: string;
   number: string;
@@ -64,7 +67,7 @@ export interface Request {
   ownerId: string;
   driverId?: string;
   type: 'park' | 'pickup';
-  status: 'pending' | 'accepted' | 'in-progress' | 'completed' | 'handed_over' | 'cancelled';
+  status: 'pending' | 'accepted' | 'in-progress' | 'completed' | 'verified' | 'handed_over' | 'self_parked' | 'self_pickup' | 'cancelled';
   locationFrom: {
     lat: number;
     lng: number;
@@ -87,8 +90,8 @@ class ApiService {
 
   constructor() {
     // Use environment variable or default to localhost
-    this.baseURL = 'https://emh-valet-service-1.onrender.com/api';
-    // this.baseURL = 'http://localhost:5000/api';
+    // this.baseURL = 'https://emh-valet-service-1.onrender.com/api';
+    this.baseURL = 'http://192.168.1.4:3000/api';
   }
 
   private async getAuthHeaders(): Promise<{ [key: string]: string }> {
@@ -103,7 +106,7 @@ class ApiService {
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {}
-  ): Promise<T> {
+  ): Promise<{ success: boolean; data: T | null; message: string; error: any; timestamp: string }> {
     const requestId = Math.random().toString(36).substr(2, 9);
     const startTime = Date.now();
 
@@ -135,111 +138,6 @@ class ApiService {
         ...options,
       });
 
-      const data = await response.json();
-      const responseTime = Date.now() - startTime;
-
-      // Log response
-      console.log(`[API-${requestId}] ✅ RESPONSE: ${response.status} ${response.statusText} (${responseTime}ms)`);
-      console.log(`[API-${requestId}] 📥 Data:`, data);
-
-      if (!response.ok) {
-        console.error(`[API-${requestId}] ❌ Error Response:`, data);
-        throw new Error(data.message || `HTTP ${response.status}`);
-      }
-
-      return data;
-    } catch (error) {
-      const responseTime = Date.now() - startTime;
-      console.error(`[API-${requestId}] 💥 ERROR: ${error instanceof Error ? error.message : 'Unknown error'} (${responseTime}ms)`);
-      console.error(`[API-${requestId}] 🔍 Stack:`, error);
-
-      throw error;
-    }
-  }
-
-  // Authentication APIs
-  async register(userData: {
-    name: string;
-    phone: string;
-    email?: string;
-    password?: string;
-    role: 'admin' | 'driver' | 'valet_supervisor' | 'parking_location_supervisor' | 'owner';
-    licenseDetails?: any;
-    defaultLocation?: {
-      lat: number;
-      lng: number;
-      address: string;
-    };
-  }): Promise<{ userId: string; requiresVerification: boolean }> {
-    return this.makeRequest('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    });
-  }
-
-  async login(phone: string): Promise<{ requiresVerification: boolean }> {
-    return this.makeRequest('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ phone }),
-    });
-  }
-
-  async sendOtp(phone: string): Promise<{ sessionInfo: string }> {
-    return this.makeRequest('/auth/send-otp', {
-      method: 'POST',
-      body: JSON.stringify({ phone }),
-    });
-  }
-
-  async verifyOtp(phone: string, otp: string): Promise<{ token: string; user: User }> {
-    return this.makeRequest('/auth/verify-otp', {
-      method: 'POST',
-      body: JSON.stringify({ phone, otp }),
-    });
-  }
-
-  async forgotPassword(phone: string): Promise<any> {
-    return this.makeRequest('/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ phone }),
-    });
-  }
-
-  async resetPassword(phone: string, otp: string, password: string): Promise<any> {
-    return this.makeRequest('/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify({ phone, otp, password }),
-    });
-  }
-
-  // Generic POST method for external API calls
-  async post(endpoint: string, data?: any): Promise<any> {
-    const requestId = Math.random().toString(36).substr(2, 9);
-    const startTime = Date.now();
-
-    try {
-      const url = `${this.baseURL}${endpoint}`;
-      const token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-
-      // Log request
-      console.log(`[API-${requestId}] 🚀 REQUEST: POST ${url}`);
-      console.log(`[API-${requestId}] 📋 Headers:`, {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: '[HIDDEN]' } : {})
-      });
-      if (data) {
-        console.log(`[API-${requestId}] 📦 Body:`, data);
-      }
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: data ? JSON.stringify(data) : undefined,
-      });
-
       const responseData = await response.json();
       const responseTime = Date.now() - startTime;
 
@@ -249,32 +147,124 @@ class ApiService {
 
       if (!response.ok) {
         console.error(`[API-${requestId}] ❌ Error Response:`, responseData);
-        throw {
-          response: {
-            status: response.status,
-            data: responseData
-          }
+        // Return standardized failure response
+        const errorMessage = responseData?.error || responseData?.message || `HTTP ${response.status}`;
+        return {
+          success: false,
+          data: null,
+          message: errorMessage,
+          error: responseData?.error || responseData,
+          timestamp: new Date().toISOString()
         };
       }
 
-      return { data: responseData };
-    } catch (error: any) {
+      // Handle standardized API response format or wrap non-standardized responses
+      if (responseData && typeof responseData === 'object' && 'success' in responseData) {
+        // Always return the standardized response as-is (whether success or failure)
+        return {
+          success: responseData.success,
+          data: responseData.success ? responseData.data : null,
+          message: responseData.message || (responseData.success ? 'Operation completed successfully' : 'Operation failed'),
+          error: responseData.error || null,
+          timestamp: responseData.timestamp || new Date().toISOString()
+        };
+      }
+
+      // If backend doesn't follow standardized format, wrap it with success
+      return {
+        success: true,
+        data: responseData,
+        message: 'Operation completed successfully',
+        error: null,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
       const responseTime = Date.now() - startTime;
-      console.error(`[API-${requestId}] 💥 ERROR: ${error.response?.data?.message || error.message || 'Unknown error'} (${responseTime}ms)`);
+      console.error(`[API-${requestId}] 💥 ERROR: ${error instanceof Error ? error.message : 'Unknown error'} (${responseTime}ms)`);
       console.error(`[API-${requestId}] 🔍 Stack:`, error);
 
-      throw error;
+      // Return standardized error response for network/other errors
+      return {
+        success: false,
+        data: null,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error: error,
+        timestamp: new Date().toISOString()
+      };
     }
   }
 
-  async sendFirebaseOTP(phone: string): Promise<{ sessionInfo: string }> {
+  // Authentication APIs
+  async register(userData: {
+    name: string;
+    phone: string;
+    email?: string;
+    password?: string;
+    role: 'admin' | 'driver' | 'valet_supervisor' | 'parking_location_supervisor';
+    licenseDetails?: any;
+    defaultLocation?: {
+      lat: number;
+      lng: number;
+      address: string;
+    };
+  }): Promise<{ success: boolean; data: { userId: string; requiresVerification: boolean } | null; message: string; error: any; timestamp: string }> {
+    return this.makeRequest('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async login(phone: string): Promise<{ success: boolean; data: { requiresVerification: boolean } | null; message: string; error: any; timestamp: string }> {
+    return this.makeRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    });
+  }
+
+  async sendOtp(phone: string): Promise<{ success: boolean; data: { sessionInfo: string } | null; message: string; error: any; timestamp: string }> {
+    return this.makeRequest('/auth/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    });
+  }
+
+  async verifyOtp(phone: string, otp: string): Promise<{ success: boolean; data: { token: string; user: User } | null; message: string; error: any; timestamp: string }> {
+    return this.makeRequest('/auth/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ phone, otp }),
+    });
+  }
+
+  async forgotPassword(phone: string): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
+    return this.makeRequest('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    });
+  }
+
+  async resetPassword(phone: string, otp: string, password: string): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
+    return this.makeRequest('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ phone, otp, password }),
+    });
+  }
+
+  // Generic POST method for external API calls
+  async post(endpoint: string, data?: any): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
+    return this.makeRequest(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async sendFirebaseOTP(phone: string): Promise<{ success: boolean; data: { sessionInfo: string } | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/auth/send-firebase-otp', {
       method: 'POST',
       body: JSON.stringify({ phone }),
     });
   }
 
-  async verifyFirebaseOTP(phone: string, otp: string): Promise<{ token: string; user: User }> {
+  async verifyFirebaseOTP(phone: string, otp: string): Promise<{ success: boolean; data: { token: string; user: User } | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/auth/verify-firebase-otp', {
       method: 'POST',
       body: JSON.stringify({ phone, otp }),
@@ -294,7 +284,7 @@ class ApiService {
       phone: string;
       relation: string;
     };
-  }): Promise<{ user: User }> {
+  }): Promise<{ success: boolean; data: { user: User } | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/auth/profile', {
       method: 'PUT',
       body: JSON.stringify(updates),
@@ -310,70 +300,24 @@ class ApiService {
     photoUrl?: string;
     vehicleType?: 'car' | 'bike' | 'truck' | 'suv';
     specialInstructions?: string;
-  }): Promise<Vehicle> {
+  }): Promise<{ success: boolean; data: Vehicle | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/owner/add-vehicle', {
       method: 'POST',
       body: JSON.stringify(vehicleData),
     });
   }
 
-  async getVehicles(): Promise<Vehicle[]> {
+  async getVehicles(): Promise<{ success: boolean; data: Vehicle[] | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/owner/vehicles');
   }
 
-  // Request APIs
-  async createParkRequest(requestData: {
-    vehicleId: string;
-    locationFrom: {
-      lat: number;
-      lng: number;
-      address: string;
-    };
-    specialInstructions?: string;
-  }): Promise<Request> {
-    return this.makeRequest('/owner/park-request', {
-      method: 'POST',
-      body: JSON.stringify(requestData),
-    });
-  }
 
-  async createPickupRequest(requestData: {
-    vehicleId: string;
-    locationTo: {
-      lat: number;
-      lng: number;
-      address: string;
-    };
-    specialInstructions?: string;
-  }): Promise<Request> {
-    return this.makeRequest('/owner/pickup-request', {
-      method: 'POST',
-      body: JSON.stringify(requestData),
-    });
-  }
-
-  async getRequestStatus(requestId: string): Promise<Request> {
-    return this.makeRequest(`/owner/request-status/${requestId}`);
-  }
-
-  async submitFeedback(
-    requestId: string,
-    feedback: {
-      rating: number;
-      comments?: string;
-    }
-  ): Promise<any> {
-    return this.makeRequest(`/owner/submit-feedback/${requestId}`, {
-      method: 'POST',
-      body: JSON.stringify(feedback),
-    });
-  }
 
   // Driver APIs
   async getIncomingRequests(filters?: {
     type?: string;
     location?: string;
-  }): Promise<Request[]> {
+  }): Promise<{ success: boolean; data: Request[] | null; message: string; error: any; timestamp: string }> {
     const queryParams = new URLSearchParams();
     if (filters?.type) queryParams.append('type', filters.type);
     if (filters?.location) queryParams.append('location', filters.location);
@@ -382,19 +326,19 @@ class ApiService {
     return this.makeRequest(`/driver/incoming-requests${queryString ? `?${queryString}` : ''}`);
   }
 
-  async acceptRequest(requestId: string): Promise<Request> {
+  async acceptRequest(requestId: string): Promise<{ success: boolean; data: Request | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest(`/driver/accept-request/${requestId}`, {
       method: 'POST',
     });
   }
 
-  async markParked(requestId: string): Promise<Request> {
+  async markParked(requestId: string): Promise<{ success: boolean; data: Request | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest(`/driver/mark-parked/${requestId}`, {
       method: 'POST',
     });
   }
 
-  async markHandedOver(requestId: string): Promise<Request> {
+  async markHandedOver(requestId: string): Promise<{ success: boolean; data: Request | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest(`/driver/mark-handed-over/${requestId}`, {
       method: 'POST',
     });
@@ -404,7 +348,7 @@ class ApiService {
     dateFrom?: string;
     dateTo?: string;
     type?: string;
-  }): Promise<Request[]> {
+  }): Promise<{ success: boolean; data: Request[] | null; message: string; error: any; timestamp: string }> {
     const queryParams = new URLSearchParams();
     if (filters?.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
     if (filters?.dateTo) queryParams.append('dateTo', filters.dateTo);
@@ -414,14 +358,14 @@ class ApiService {
     return this.makeRequest(`/driver/history${queryString ? `?${queryString}` : ''}`);
   }
 
-  async getTodayParkedVehicles(): Promise<Vehicle[]> {
+  async getTodayParkedVehicles(): Promise<{ success: boolean; data: Vehicle[] | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/driver/today-parked-vehicles');
   }
 
   async getDriverStats(filters?: {
     dateFrom?: string;
     dateTo?: string;
-  }): Promise<any> {
+  }): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
     const queryParams = new URLSearchParams();
     if (filters?.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
     if (filters?.dateTo) queryParams.append('dateTo', filters.dateTo);
@@ -431,8 +375,17 @@ class ApiService {
   }
 
   // Common APIs
-  async getParkingLocations(): Promise<ParkingLocation[]> {
+  async getParkingLocations(): Promise<{ success: boolean; data: ParkingLocation[] | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/common/parking-locations');
+  }
+
+  async searchVehicles(query: string): Promise<{ success: boolean; data: Vehicle[] | null; message: string; error: any; timestamp: string }> {
+    return this.makeRequest(`/common/vehicles/search?q=${encodeURIComponent(query)}`);
+  }
+
+  // Driver APIs - Get parking locations for drivers
+  async getDriverParkingLocations(): Promise<{ success: boolean; data: ParkingLocation[] | null; message: string; error: any; timestamp: string }> {
+    return this.makeRequest('/driver/parking-locations');
   }
 
   // Admin APIs
@@ -440,7 +393,7 @@ class ApiService {
     role?: string;
     dateFrom?: string;
     dateTo?: string;
-  }): Promise<User[]> {
+  }): Promise<{ success: boolean; data: User[] | null; message: string; error: any; timestamp: string }> {
     const queryParams = new URLSearchParams();
     if (filters?.role) queryParams.append('role', filters.role);
     if (filters?.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
@@ -453,7 +406,7 @@ class ApiService {
   async getAllUsers(filters?: {
     role?: string;
     status?: string;
-  }): Promise<User[]> {
+  }): Promise<{ success: boolean; data: User[] | null; message: string; error: any; timestamp: string }> {
     const queryParams = new URLSearchParams();
     if (filters?.role) queryParams.append('role', filters.role);
     if (filters?.status) queryParams.append('status', filters.status);
@@ -462,14 +415,14 @@ class ApiService {
     return this.makeRequest(`/admin/get-all-users${queryString ? `?${queryString}` : ''}`);
   }
 
-  async approveUser(userId: string, role?: string): Promise<User> {
+  async approveUser(userId: string, role?: string): Promise<{ success: boolean; data: User | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest(`/admin/approve-user/${userId}`, {
       method: 'POST',
       body: JSON.stringify({ role }),
     });
   }
 
-  async rejectUser(userId: string): Promise<any> {
+  async rejectUser(userId: string): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest(`/admin/reject-user/${userId}`, {
       method: 'POST',
     });
@@ -487,23 +440,22 @@ class ApiService {
       address: string;
     };
     role?: string;
-  }): Promise<User> {
-    try {
-      return await this.makeRequest(`/admin/edit-user/${userId}`, {
-        method: 'PUT',
-        body: JSON.stringify(updates),
-      });
-    } catch (error: any) {
-      // Handle duplicate phone error specifically
-      if (error.message && error.message.includes('duplicate key error') && error.message.includes('phone_1')) {
-        throw new Error('Phone number already exists. Please use a different phone number.');
+  }): Promise<{ success: boolean; data: User | null; message: string; error: any; timestamp: string }> {
+    const response = await this.makeRequest(`/admin/edit-user/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+
+    // Handle duplicate phone error specifically
+    if (!response.success && response.message && response.message.includes('duplicate key error')) {
+      if (response.message.includes('phone_1')) {
+        response.message = 'Phone number already exists. Please use a different phone number.';
+      } else if (response.message.includes('email_1')) {
+        response.message = 'Email address already exists. Please use a different email address.';
       }
-      // Handle duplicate email error
-      if (error.message && error.message.includes('duplicate key error') && error.message.includes('email_1')) {
-        throw new Error('Email address already exists. Please use a different email address.');
-      }
-      throw error;
     }
+
+    return response;
   }
 
   async addParkingLocation(locationData: {
@@ -514,21 +466,21 @@ class ApiService {
       lng: number;
     };
     capacity: number;
-  }): Promise<ParkingLocation> {
+  }): Promise<{ success: boolean; data: ParkingLocation | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/admin/add-parking-location', {
       method: 'POST',
       body: JSON.stringify(locationData),
     });
   }
 
-  async editParkingLocation(locationId: string, updates: Partial<ParkingLocation>): Promise<ParkingLocation> {
+  async editParkingLocation(locationId: string, updates: Partial<ParkingLocation>): Promise<{ success: boolean; data: ParkingLocation | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest(`/admin/edit-parking-location/${locationId}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
   }
 
-  async deleteParkingLocation(locationId: string): Promise<any> {
+  async deleteParkingLocation(locationId: string): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest(`/admin/delete-parking-location/${locationId}`, {
       method: 'DELETE',
     });
@@ -538,7 +490,7 @@ class ApiService {
     dateFrom?: string;
     dateTo?: string;
     locationId?: string;
-  }): Promise<any> {
+  }): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
     const queryParams = new URLSearchParams();
     if (filters?.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
     if (filters?.dateTo) queryParams.append('dateTo', filters.dateTo);
@@ -560,15 +512,7 @@ class ApiService {
     searchValue?: string;
     page?: number;
     limit?: number;
-  }): Promise<{
-    history: any[];
-    pagination: {
-      currentPage: number;
-      limit: number;
-      total: number;
-      pages: number;
-    };
-  }> {
+  }): Promise<{ success: boolean; data: { history: any[]; pagination: { currentPage: number; limit: number; total: number; pages: number; }; } | null; message: string; error: any; timestamp: string }> {
     const queryParams = new URLSearchParams();
     if (filters?.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
     if (filters?.dateTo) queryParams.append('dateTo', filters.dateTo);
@@ -591,7 +535,7 @@ class ApiService {
     dateTo?: string;
     type?: string;
     format?: 'json' | 'csv';
-  }): Promise<any> {
+  }): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
     const queryParams = new URLSearchParams();
     if (filters?.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
     if (filters?.dateTo) queryParams.append('dateTo', filters.dateTo);
@@ -602,8 +546,13 @@ class ApiService {
     return this.makeRequest(`/admin/export-history${queryString ? `?${queryString}` : ''}`);
   }
 
-  async getSystemHealth(): Promise<any> {
+  async getSystemHealth(): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/admin/system-health');
+  }
+
+  // Admin APIs - Get all parking locations
+  async getAdminParkingLocations(): Promise<{ success: boolean; data: ParkingLocation[] | null; message: string; error: any; timestamp: string }> {
+    return this.makeRequest('/admin/parking-locations');
   }
 
   // Supervisor APIs
@@ -622,14 +571,14 @@ class ApiService {
       lng: number;
       address: string;
     };
-  }): Promise<any> {
+  }): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/supervisor/verify-park-request', {
       method: 'POST',
       body: JSON.stringify(requestData),
     });
   }
 
-  async markSelfPickup(vehicleId: string): Promise<any> {
+  async markSelfPickup(vehicleId: string): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest(`/supervisor/mark-self-pickup/${vehicleId}`, {
       method: 'POST',
     });
@@ -640,10 +589,10 @@ class ApiService {
     phoneNumber: string;
     customerName: string;
     licensePlate: string;
-    make: string;
-    model: string;
-    color: string;
-  }): Promise<any> {
+    make?: string;
+    model?: string;
+    color?: string;
+  }): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/supervisor/create-park-request', {
       method: 'POST',
       body: JSON.stringify(requestData),
@@ -657,7 +606,7 @@ class ApiService {
       lng: number;
     };
     notes?: string;
-  }): Promise<any> {
+  }): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/supervisor/create-pickup-request', {
       method: 'POST',
       body: JSON.stringify(requestData),
@@ -667,24 +616,7 @@ class ApiService {
   async getValetDashboardStats(filters?: {
     dateFrom?: string;
     dateTo?: string;
-  }): Promise<{
-    totalParked: number;
-    totalRequests: number;
-    totalVerified: number;
-    totalSelfParked: number;
-    totalSelfPickup: number;
-    usersByRole: Array<{
-      _id: string;
-      count: number;
-    }>;
-    dailyStats: Array<{
-      _id: string;
-      count: number;
-      park: number;
-      pickup: number;
-    }>;
-    period: string;
-  }> {
+  }): Promise<{ success: boolean; data: { totalParked: number; totalRequests: number; totalVerified: number; totalSelfParked: number; totalSelfPickup: number; usersByRole: Array<{ _id: string; count: number; }>; dailyStats: Array<{ _id: string; count: number; park: number; pickup: number; }>; period: string; } | null; message: string; error: any; timestamp: string }> {
     const queryParams = new URLSearchParams();
     if (filters?.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
     if (filters?.dateTo) queryParams.append('dateTo', filters.dateTo);
@@ -698,7 +630,7 @@ class ApiService {
     dateFrom?: string;
     dateTo?: string;
     status?: string;
-  }): Promise<Vehicle[]> {
+  }): Promise<{ success: boolean; data: Vehicle[] | null; message: string; error: any; timestamp: string }> {
     const queryParams = new URLSearchParams();
     if (filters?.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
     if (filters?.dateTo) queryParams.append('dateTo', filters.dateTo);
@@ -713,7 +645,7 @@ class ApiService {
     dateTo?: string;
     type?: string;
     action?: string;
-  }): Promise<any[]> {
+  }): Promise<{ success: boolean; data: any[] | null; message: string; error: any; timestamp: string }> {
     const queryParams = new URLSearchParams();
     if (filters?.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
     if (filters?.dateTo) queryParams.append('dateTo', filters.dateTo);
@@ -766,9 +698,30 @@ class ApiService {
 
       if (!response.ok) {
         console.error(`[API-${requestId}] ❌ Error Response:`, data);
-        throw new Error(data.message || `HTTP ${response.status}`);
+        // Prioritize error field over message field for backend error messages
+        const errorMessage = data?.error || data?.message || `HTTP ${response.status}`;
+        const error = new Error(errorMessage);
+        (error as any).status = response.status;
+        (error as any).error = data?.error;
+        (error as any).message = data?.message;
+        throw error;
       }
 
+      // Handle standardized API response format for image upload
+      if (data && typeof data === 'object' && 'success' in data) {
+        if (!data.success) {
+          // Prioritize error field over message field for backend error messages
+          const errorMessage = data.error || data.message || 'Image upload failed';
+          const error = new Error(errorMessage);
+          (error as any).status = response.status;
+          (error as any).error = data.error;
+          (error as any).message = data.message;
+          throw error;
+        }
+        return data.data;
+      }
+
+      // If response doesn't follow standardized format, return the data directly
       return data;
     } catch (error) {
       const responseTime = Date.now() - startTime;
