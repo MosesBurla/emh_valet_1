@@ -200,7 +200,7 @@ const App: React.FC = () => {
       case 'valet_supervisor':
         return ValetDashboard;
       case 'parking_location_supervisor':
-        return ParkLocationDashboard;
+        return ParkVehiclesDashboard;
       default:
         console.warn(`Unknown user role: ${userRole}, defaulting to DriverDashboard`);
         return DriverDashboard;

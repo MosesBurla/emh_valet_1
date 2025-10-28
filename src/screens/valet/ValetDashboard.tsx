@@ -232,6 +232,44 @@ const ValetDashboard: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Parked Vehicles */}
+        {parkedVehicles.length > 0 && (
+          <View style={styles.activitySection}>
+            <Text style={styles.sectionTitle}>Parked Vehicles</Text>
+            <Card style={styles.activityCard}>
+              {parkedVehicles.map((vehicle, index) => {
+                const isVerified = vehicle.vehicleId?.isVerified ?? vehicle.isVerified;
+                return (
+                  <View key={vehicle.id || index} style={styles.activityItem}>
+                    <View style={[styles.activityIcon, { backgroundColor: isVerified ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)' }]}>
+                      <Icon name="directions-car" size={24} color={isVerified ? "#10b981" : "#f59e0b"} />
+                    </View>
+                    <View style={styles.activityContent}>
+                      <Text style={styles.activityTitle}>{vehicle.licensePlate}</Text>
+                      <Text style={styles.activitySubtitle}>{vehicle.ownerName} • {vehicle.location}</Text>
+                      <Text style={styles.activityTime}>{new Date(vehicle.createdAt).toLocaleDateString()}</Text>
+                    </View>
+                    {isVerified ? (
+                      <TouchableOpacity
+                        style={[styles.actionButton, { backgroundColor: COLORS.primary }]}
+                        onPress={() => navigation.navigate('RequestPickup')}
+                      >
+                        <Icon name="local-shipping" size={20} color="#FFFFFF" />
+                        <Text style={styles.actionButtonText}>Pickup</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={[styles.actionButton, { backgroundColor: COLORS.warning, flexDirection: 'row', alignItems: 'center' }]}>
+                        <Icon name="hourglass-empty" size={20} color="#FFFFFF" />
+                        <Text style={[styles.actionButtonText, { marginLeft: 4 }]}>Verification Pending</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </Card>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -459,6 +497,18 @@ const styles = StyleSheet.create({
   activityTime: {
     fontSize: 11,
     color: COLORS.textSecondary,
+  },
+  actionButton: {
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
 

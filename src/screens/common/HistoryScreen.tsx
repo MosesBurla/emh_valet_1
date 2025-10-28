@@ -320,9 +320,13 @@ const HistoryScreen: React.FC = () => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInHours = Math.abs(now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = diffInMs / (1000 * 60);
+    const diffInHours = diffInMinutes / 60;
 
-    if (diffInHours < 24) {
+    if (diffInMinutes < 60) {
+      return `${Math.floor(diffInMinutes)}m ago`;
+    } else if (diffInHours < 24) {
       return `${Math.floor(diffInHours)}h ago`;
     } else if (diffInHours < 24 * 7) {
       return `${Math.floor(diffInHours / 24)}d ago`;

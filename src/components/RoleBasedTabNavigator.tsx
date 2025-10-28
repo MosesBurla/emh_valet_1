@@ -87,7 +87,7 @@ const RoleBasedTabNavigator: React.FC<RoleBasedTabNavigatorProps> = ({ user }) =
 
       {user.role === 'parking_location_supervisor' && (
         <>
-          <Tab.Screen name="ParkVehicles" component={ParkVehiclesDashboard} />
+          <Tab.Screen name="ParkVehicles" component={ParkLocationDashboard} />
           <Tab.Screen name="History" component={HistoryScreen} />
           <Tab.Screen name="Profile" component={ProfileScreen} />
         </>

@@ -98,10 +98,7 @@ const RequestPickupScreen: React.FC = () => {
 
       const result = await apiService.createPickupRequest({
         vehicleId: vehicle.id,
-        locationFrom: {
-          lat: 40.7128,
-          lng: -74.0060,
-        },
+        locationFrom: "40.7128,-74.0060",
         notes: `Pickup requested for ${vehicle.number} - ${vehicle.make} ${vehicle.model}`,
       });
 
@@ -162,21 +159,28 @@ const RequestPickupScreen: React.FC = () => {
           <Text style={styles.licensePlate}>{item.number}</Text>
           <Text style={styles.customerName}>{item.ownerName}</Text>
         </View>
-        <TouchableOpacity
-          style={[
-            styles.pickupButton,
-            submittingPickup === item.id && styles.pickupButtonDisabled
-          ]}
-          onPress={() => handleRequestPickup(item)}
-          disabled={submittingPickup === item.id}
-        >
-          <Text style={[
-            styles.pickupButtonText,
-            submittingPickup === item.id && styles.pickupButtonTextDisabled
-          ]}>
-            {submittingPickup === item.id ? "Creating..." : "Pickup"}
-          </Text>
-        </TouchableOpacity>
+        {item.isVerified ? (
+          <TouchableOpacity
+            style={[
+              styles.pickupButton,
+              submittingPickup === item.id && styles.pickupButtonDisabled
+            ]}
+            onPress={() => handleRequestPickup(item)}
+            disabled={submittingPickup === item.id}
+          >
+            <Text style={[
+              styles.pickupButtonText,
+              submittingPickup === item.id && styles.pickupButtonTextDisabled
+            ]}>
+              {submittingPickup === item.id ? "Creating..." : "Pickup"}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.verificationPendingContainer}>
+            <Icon name="hourglass-empty" size={20} color={COLORS.warning} />
+            <Text style={styles.verificationPendingText}>Verification Pending</Text>
+          </View>
+        )}
       </View>
     </Surface>
   );
@@ -366,6 +370,32 @@ const styles = StyleSheet.create({
   },
   pickupButtonTextDisabled: {
     color: '#FFFFFF',
+  },
+  verificationPendingChip: {
+    backgroundColor: COLORS.warning + '20',
+    marginTop: SPACING.xs,
+  },
+  verificationPendingChipText: {
+    color: COLORS.warning,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  verificationPendingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    backgroundColor: COLORS.warning + '20',
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.warning + '40',
+  },
+  verificationPendingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.warning,
+    marginLeft: SPACING.sm,
   },
   emptyContainer: {
     flex: 1,

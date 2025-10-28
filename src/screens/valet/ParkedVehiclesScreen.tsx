@@ -163,14 +163,21 @@ const ParkedVehiclesScreen: React.FC = () => {
       </View>
 
       <View style={styles.vehicleActions}>
-        <AccessibleButton
-          title="Request Pickup"
-          onPress={() => handleRequestPickup(item)}
-          variant="outline"
-          size="small"
-          accessibilityLabel={`Request pickup for ${item.number}`}
-          style={styles.actionButton}
-        />
+        {item.isVerified ? (
+          <AccessibleButton
+            title="Request Pickup"
+            onPress={() => handleRequestPickup(item)}
+            variant="outline"
+            size="small"
+            accessibilityLabel={`Request pickup for ${item.number}`}
+            style={styles.actionButton}
+          />
+        ) : (
+          <View style={[styles.verificationPendingContainer, styles.actionButton]}>
+            <Icon name="hourglass-empty" size={20} color={COLORS.warning} />
+            <Text style={styles.verificationPendingText}>Verification Pending</Text>
+          </View>
+        )}
       </View>
     </Surface>
   );
@@ -347,6 +354,23 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: '100%',
+  },
+  verificationPendingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    backgroundColor: COLORS.warning + '20',
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.warning + '40',
+  },
+  verificationPendingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.warning,
+    marginLeft: SPACING.sm,
   },
   emptyContainer: {
     flex: 1,

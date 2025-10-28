@@ -601,10 +601,7 @@ class ApiService {
 
   async createPickupRequest(requestData: {
     vehicleId: string;
-    locationFrom: {
-      lat: number;
-      lng: number;
-    };
+    locationFrom: string;
     notes?: string;
   }): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/supervisor/create-pickup-request', {

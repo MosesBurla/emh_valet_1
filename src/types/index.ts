@@ -29,7 +29,7 @@ export interface ParkingRequest {
     latitude: number;
     longitude: number;
   };
-  status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled' | 'parked';
   priority: 'standard' | 'vip' | 'emergency';
   estimatedTime: number;
   specialInstructions?: string;
@@ -41,6 +41,7 @@ export interface ParkingRequest {
   verifiedBy?: string;
   verificationPhoto?: string;
   totalCost?: number;
+  isVerified?: boolean;
   // Additional fields from API response
   locationFrom?: {
     lat: number;
