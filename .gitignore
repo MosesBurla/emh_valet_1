@@ -45,6 +45,9 @@ fastlane/test_output
 # Gradle
 .gradle/
 
+# CMake build directory
+android/app/.cxx/
+
 # CocoaPods
 ios/Pods/
 
