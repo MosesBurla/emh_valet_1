@@ -282,21 +282,28 @@ const UserManagementScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+      <StatusBar backgroundColor={COLORS.primary} barStyle="light-content" />
 
-      {/* Header */}
+      {/* Modern Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-back" size={24} color="#1976D2" />
-        </TouchableOpacity>
-        <View style={styles.headerTitle}>
-          <Icon name="people" size={24} color="#1976D2" />
-          <Text style={styles.headerText}>User Management</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity
+              style={styles.avatar}
+              onPress={() => navigation.goBack()}
+          >
+              <Icon name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+        
+            <View style={styles.headerText}>
+              <Text style={styles.headerTitle}>User Management</Text>
+              <Text style={styles.headerSubtitle}>Manage system users and permissions</Text>
+            </View>
+          </View>
+          {/* <View style={styles.headerAction}>
+            <View style={styles.notificationDot} />
+          </View> */}
         </View>
-        <View style={styles.headerSpacer} />
       </View>
 
       {/* Content */}
@@ -478,32 +485,63 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingLeft: SPACING.md,
-    paddingTop: 40,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xl,
+    paddingTop: SPACING.xl + 10,
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   backButton: {
     padding: SPACING.sm,
     marginRight: SPACING.md,
   },
-  headerTitle: {
-    flexDirection: 'row',
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
     alignItems: 'center',
-    flex: 1,
+    marginRight: SPACING.md,
   },
   headerText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#212121',
-    marginLeft: SPACING.sm,
+    flex: 1,
   },
-  headerSpacer: {
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 20,
+  },
+  headerAction: {
     width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    backgroundColor: '#ef4444',
+    borderRadius: 4,
   },
   content: {
     flex: 1,

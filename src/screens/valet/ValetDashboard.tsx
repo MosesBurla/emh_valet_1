@@ -103,10 +103,10 @@ const ValetDashboard: React.FC = () => {
               <Text style={styles.headerSubtitle}>Manage your parking operations</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.headerAction}>
-            <Icon name="notifications-outline" size={24} color="#FFFFFF" />
+          {/* <TouchableOpacity style={styles.headerAction}>
+            <Icon name="notifications" size={24} color="#FFFFFF" />
             <View style={styles.notificationDot} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
@@ -146,12 +146,6 @@ const ValetDashboard: React.FC = () => {
             {/* Parked Vehicles Card */}
             <Surface style={styles.statsCard} elevation={3}>
               <TouchableOpacity style={styles.statsCardTouchable}>
-                <View style={styles.statsCardHeader}>
-                  <View style={[styles.statsIcon, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-                    <Icon name="local-parking" size={24} color="#10b981" />
-                  </View>
-                  <Icon name="info" size={16} color={COLORS.textSecondary} />
-                </View>
                 <Text style={styles.statsNumber}>{stats?.totalParked || parkedVehicles.length}</Text>
                 <Text style={styles.statsLabel}>Parked Vehicles</Text>
                 <Text style={styles.statsSubtext}>Currently parked</Text>
@@ -161,28 +155,15 @@ const ValetDashboard: React.FC = () => {
             {/* Today's Requests Card */}
             <Surface style={styles.statsCard} elevation={3}>
               <TouchableOpacity style={styles.statsCardTouchable}>
-                <View style={styles.statsCardHeader}>
-                  <View style={[styles.statsIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
-                    <Icon name="assignment" size={24} color="#8b5cf6" />
-                  </View>
-                </View>
                 <Text style={styles.statsNumber}>{stats?.totalRequests || 0}</Text>
                 <Text style={styles.statsLabel}>Total Requests</Text>
                 <Text style={styles.statsSubtext}>All time requests</Text>
               </TouchableOpacity>
             </Surface>
-          </View>
 
-          <View style={styles.statsGrid}>
-            {/* Completed Card */}
+            {/* Verified Card */}
             <Surface style={styles.statsCard} elevation={3}>
               <TouchableOpacity style={styles.statsCardTouchable}>
-                <View style={styles.statsCardHeader}>
-                  <View style={[styles.statsIcon, { backgroundColor: 'rgba(34, 197, 94, 0.1)' }]}>
-                    <Icon name="check-circle" size={24} color="#22c55e" />
-                  </View>
-                  <Icon name="verified" size={16} color={COLORS.success} />
-                </View>
                 <Text style={styles.statsNumber}>{stats?.totalVerified || 0}</Text>
                 <Text style={styles.statsLabel}>Verified</Text>
                 <Text style={styles.statsSubtext}>Verified vehicles</Text>
@@ -192,11 +173,6 @@ const ValetDashboard: React.FC = () => {
             {/* Available Drivers Card */}
             <Surface style={styles.statsCard} elevation={3}>
               <TouchableOpacity style={styles.statsCardTouchable}>
-                <View style={styles.statsCardHeader}>
-                  <View style={[styles.statsIcon, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
-                    <Icon name="people" size={24} color="#3b82f6" />
-                  </View>
-                </View>
                 <Text style={styles.statsNumber}>{stats?.availableDrivers || 0}</Text>
                 <Text style={styles.statsLabel}>Available Drivers</Text>
                 <Text style={styles.statsSubtext}>Ready for service</Text>
@@ -233,43 +209,7 @@ const ValetDashboard: React.FC = () => {
           </View>
         </View>
 
-        {/* Parked Vehicles */}
-        {parkedVehicles.length > 0 && (
-          <View style={styles.activitySection}>
-            <Text style={styles.sectionTitle}>Parked Vehicles</Text>
-            <Card style={styles.activityCard}>
-              {parkedVehicles.map((vehicle, index) => {
-                const isVerified = vehicle.vehicleId?.isVerified ?? vehicle.isVerified;
-                return (
-                  <View key={vehicle.id || index} style={styles.activityItem}>
-                    <View style={[styles.activityIcon, { backgroundColor: isVerified ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)' }]}>
-                      <Icon name="directions-car" size={24} color={isVerified ? "#10b981" : "#f59e0b"} />
-                    </View>
-                    <View style={styles.activityContent}>
-                      <Text style={styles.activityTitle}>{vehicle.licensePlate}</Text>
-                      <Text style={styles.activitySubtitle}>{vehicle.ownerName} • {vehicle.location}</Text>
-                      <Text style={styles.activityTime}>{new Date(vehicle.createdAt).toLocaleDateString()}</Text>
-                    </View>
-                    {isVerified ? (
-                      <TouchableOpacity
-                        style={[styles.actionButton, { backgroundColor: COLORS.primary }]}
-                        onPress={() => navigation.navigate('RequestPickup')}
-                      >
-                        <Icon name="local-shipping" size={20} color="#FFFFFF" />
-                        <Text style={styles.actionButtonText}>Pickup</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <View style={[styles.actionButton, { backgroundColor: COLORS.warning, flexDirection: 'row', alignItems: 'center' }]}>
-                        <Icon name="hourglass-empty" size={20} color="#FFFFFF" />
-                        <Text style={[styles.actionButtonText, { marginLeft: 4 }]}>Verification Pending</Text>
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
-            </Card>
-          </View>
-        )}
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -400,26 +340,26 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   statsIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   statsNumber: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
     marginBottom: SPACING.xs,
   },
   statsLabel: {
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.textSecondary,
     fontWeight: '500',
     marginBottom: 2,
   },
   statsSubtext: {
-    fontSize: 12,
+    fontSize: 10,
     color: COLORS.textSecondary,
   },
   actionsSection: {

@@ -3,16 +3,14 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   ScrollView,
   RefreshControl,
   Alert,
   SafeAreaView,
   TouchableOpacity,
-  Modal,
   StatusBar,
 } from 'react-native';
-import { Card, Chip, Badge, Surface } from 'react-native-paper';
+import { Surface, Card } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -39,8 +37,6 @@ const DriverDashboard: React.FC = () => {
   const [requests, setRequests] = useState<ParkingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showRequestModal, setShowRequestModal] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<ParkingRequest | null>(null);
   const [acceptingRequest, setAcceptingRequest] = useState(false);
   const [parkingRequest, setParkingRequest] = useState(false);
   const [handingOverRequest, setHandingOverRequest] = useState(false);
@@ -129,9 +125,6 @@ const DriverDashboard: React.FC = () => {
       if (result.success) {
         // Refresh the list to show updated requests
         await loadRequests();
-
-        // Close modal if it was open (not needed anymore)
-        setShowRequestModal(false);
       } else {
         Alert.alert('Request Acceptance Failed', result.message || 'Failed to accept request');
       }
@@ -141,10 +134,6 @@ const DriverDashboard: React.FC = () => {
     } finally {
       setAcceptingRequest(false);
     }
-  };
-
-  const viewRequestDetails = (request: ParkingRequest) => {
-    navigation.navigate('RequestDetails', { request });
   };
 
   const handleLogout = async () => {
@@ -175,10 +164,7 @@ const DriverDashboard: React.FC = () => {
 
         Alert.alert(
           'Vehicle Parked Successfully',
-          `Vehicle ${request.licensePlate} has been marked as parked and the request is now complete.`,
-          [
-            { text: 'OK', onPress: () => setShowRequestModal(false) },
-          ]
+          `Vehicle ${request.licensePlate} has been marked as parked and the request is now complete.`
         );
       } else {
         Alert.alert('Parking Failed', result.message || 'Unable to mark vehicle as parked. Please try again.');
@@ -202,10 +188,7 @@ const DriverDashboard: React.FC = () => {
 
         Alert.alert(
           'Handover Completed Successfully',
-          `Vehicle ${request.licensePlate} handover has been completed and the request is now finished.`,
-          [
-            { text: 'OK', onPress: () => setShowRequestModal(false) },
-          ]
+          `Vehicle ${request.licensePlate} handover has been completed and the request is now finished.`
         );
       } else {
         Alert.alert('Handover Failed', result.message || 'Unable to complete handover. Please try again.');
@@ -220,109 +203,15 @@ const DriverDashboard: React.FC = () => {
 
 
 
-  const renderRequest = ({ item }: { item: ParkingRequest }) => (
-    <Card style={[
-      styles.requestCard,
-      item.status === 'accepted' && styles.acceptedRequestCard,
-    ]}>
-      <Card.Content>
-        <View style={styles.requestHeader}>
-          <View style={styles.locationContainer}>
-            <Icon name="location-on" size={20} color={COLORS.primary} />
-            <Text style={styles.location}>{item.location}</Text>
-          </View>
-          {item.status === 'accepted' ? (
-            <Chip
-              mode="flat"
-              style={styles.acceptedStatusChip}
-            >
-              ACCEPTED
-            </Chip>
-          ) : (
-            <Chip
-              mode="outlined"
-              style={[
-                styles.typeChip,
-                item.type === 'pickup' && styles.pickupChip,
-                item.type === 'park' && styles.parkChip,
-              ]}
-            >
-              {item.type.toUpperCase()}
-            </Chip>
-          )}
-        </View>
-
-        <View style={styles.detailsContainer}>
-          <Text style={styles.plate}>License Plate: {item.licensePlate}</Text>
-          <Text style={styles.owner}>Owner: {item.ownerName}</Text>
-          <Text style={styles.phone}>Phone: {item.ownerPhone}</Text>
-          {item.vehicleMake && (
-            <Text style={styles.vehicle}>
-              Vehicle: {item.vehicleMake} {item.vehicleModel}
-            </Text>
-          )}
-          <Text style={styles.estimatedTime}>
-            Estimated Time: {item.estimatedTime} minutes
-          </Text>
-        </View>
-
-        <View style={styles.actions}>
-          <AccessibleButton
-            title="View Details"
-            onPress={() => viewRequestDetails(item)}
-            variant="outline"
-            size="small"
-            accessibilityLabel={`View details for ${item.licensePlate}`}
-            style={styles.detailsButton}
-          />
-          {item.status === 'accepted' ? (
-            <AccessibleButton
-              title={
-                item.type === 'park'
-                  ? (parkingRequest ? "Parking..." : "Mark Parked")
-                  : (handingOverRequest ? "Handing Over..." : "Mark Handed Over")
-              }
-              onPress={() => {
-                if (item.type === 'park') {
-                  handleMarkAsParked(item);
-                } else {
-                  handleMarkAsHandedOver(item);
-                }
-              }}
-              variant="primary"
-              size="small"
-              disabled={parkingRequest || handingOverRequest}
-              accessibilityLabel={
-                item.type === 'park'
-                  ? `Mark ${item.licensePlate} as parked`
-                  : `Mark ${item.licensePlate} handover as complete`
-              }
-              accessibilityHint={
-                item.type === 'park'
-                  ? `Mark this vehicle as successfully parked`
-                  : `Mark this vehicle handover as completed`
-              }
-              style={item.type === 'park' ? styles.parkButton : styles.pickupButton}
-            />
-          ) : (
-            <AccessibleButton
-              title={acceptingRequest ? "Accepting..." : "Accept"}
-              onPress={() => handleAcceptRequest(item)}
-              variant="primary"
-              size="small"
-              disabled={acceptingRequest}
-              accessibilityLabel={`Accept request for ${item.licensePlate}`}
-              accessibilityHint={`Accept the ${item.type} request for ${item.ownerName}`}
-              style={styles.acceptButton}
-            />
-          )}
-        </View>
-      </Card.Content>
-    </Card>
-  );
-
   if (loading) {
-    return <LoadingSkeleton type="full" />;
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Icon name="hourglass-empty" size={48} color={COLORS.textSecondary} />
+          <Text style={styles.loadingText}>Loading requests...</Text>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -382,15 +271,58 @@ const DriverDashboard: React.FC = () => {
         <View style={styles.requestsSection}>
           <Text style={styles.sectionTitle}>All Requests</Text>
           {requests.length > 0 ? (
-            <FlatList
-              data={requests}
-              renderItem={renderRequest}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              style={styles.requestsList}
-            />
+            <Card style={styles.activityCard}>
+              {requests.map((item, index) => (
+                <View key={item.id || index} style={styles.activityItem}>
+                  <View style={[styles.activityIcon, { backgroundColor: item.status === 'accepted' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)' }]}>
+                    <Icon name="directions-car" size={24} color={item.status === 'accepted' ? "#10b981" : "#f59e0b"} />
+                  </View>
+                  <View style={styles.activityContent}>
+                    <Text style={styles.activityTitle}>{item.licensePlate}</Text>
+                    <Text style={styles.activitySubtitle}>
+                      {item.ownerName} • {item.vehicleMake && `${item.vehicleMake} ${item.vehicleModel}`} ({item.vehicleColor}) • {item.type}
+                    </Text>
+                    <Text style={styles.activityTime}>
+                      Estimated: {item.estimatedTime} mins • {item.location}
+                    </Text>
+                  </View>
+                  {item.status === 'accepted' ? (
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: item.type === 'park' ? COLORS.success : COLORS.warning }]}
+                      onPress={() => {
+                        if (item.type === 'park') {
+                          handleMarkAsParked(item);
+                        } else {
+                          handleMarkAsHandedOver(item);
+                        }
+                      }}
+                      disabled={parkingRequest || handingOverRequest}
+                    >
+                      <Icon name={item.type === 'park' ? "check" : "local-shipping"} size={16} color="#FFFFFF" />
+                      <Text style={styles.actionButtonText}>
+                        {item.type === 'park'
+                          ? (parkingRequest ? "Parking..." : "Park")
+                          : (handingOverRequest ? "Handing..." : "Handover")
+                        }
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: COLORS.primary }]}
+                      onPress={() => handleAcceptRequest(item)}
+                      disabled={acceptingRequest}
+                    >
+                      <Icon name="check" size={16} color="#FFFFFF" />
+                      <Text style={styles.actionButtonText}>
+                        {acceptingRequest ? "Accepting..." : "Accept"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+            </Card>
           ) : (
-            <Surface style={styles.emptyCard} elevation={2}>
+            <Card style={styles.emptyStateCard}>
               <View style={styles.emptyContainer}>
                 <Icon name="inbox" size={48} color={COLORS.textSecondary} />
                 <Text style={styles.emptyText}>No requests available</Text>
@@ -398,140 +330,10 @@ const DriverDashboard: React.FC = () => {
                   Pull down to refresh or wait for new requests
                 </Text>
               </View>
-            </Surface>
+            </Card>
           )}
         </View>
       </ScrollView>
-
-      {/* Request Details Modal */}
-      <Modal
-        visible={showRequestModal}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={() => setShowRequestModal(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity
-              onPress={() => setShowRequestModal(false)}
-              style={styles.modalBackButton}
-            >
-              <Icon name="arrow-back" size={24} color={COLORS.primary} />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Request Details</Text>
-            <View style={styles.modalHeaderSpacer} />
-          </View>
-
-          {selectedRequest && (
-            <View style={styles.modalContent}>
-              <Card style={styles.modalCard}>
-                <Card.Content style={styles.modalCardContent}>
-                  <View style={styles.statusContainer}>
-                    <Text style={styles.statusLabel}>Status:</Text>
-                    <Chip
-                      mode="outlined"
-                      style={[
-                        styles.statusChip,
-                        selectedRequest.status === 'accepted' && styles.acceptedChip,
-                      ]}
-                    >
-                      {selectedRequest.status.toUpperCase()}
-                    </Chip>
-                  </View>
-
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Vehicle Information</Text>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.label}>License Plate:</Text>
-                      <Text style={styles.value}>{selectedRequest.licensePlate}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.label}>Make/Model:</Text>
-                      <Text style={styles.value}>
-                        {selectedRequest.vehicleMake} {selectedRequest.vehicleModel}
-                      </Text>
-                    </View>
-                    {selectedRequest.vehicleColor && (
-                      <View style={styles.infoRow}>
-                        <Text style={styles.label}>Color:</Text>
-                        <Text style={styles.value}>{selectedRequest.vehicleColor}</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Owner Information</Text>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.label}>Name:</Text>
-                      <Text style={styles.value}>{selectedRequest.ownerName}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.label}>Phone:</Text>
-                      <Text style={styles.value}>{selectedRequest.ownerPhone}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Request Details</Text>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.label}>Type:</Text>
-                      <Chip
-                        mode="outlined"
-                        style={[
-                          styles.typeChip,
-                          selectedRequest.type === 'pickup' && styles.pickupChip,
-                          selectedRequest.type === 'park' && styles.parkChip,
-                        ]}
-                      >
-                        {selectedRequest.type.toUpperCase()}
-                      </Chip>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.label}>Location:</Text>
-                      <Text style={styles.value}>{selectedRequest.location}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.label}>Estimated Time:</Text>
-                      <Text style={styles.value}>{selectedRequest.estimatedTime} minutes</Text>
-                    </View>
-                    {selectedRequest.notes && (
-                      <View style={styles.infoRow}>
-                        <Text style={styles.label}>Notes:</Text>
-                        <Text style={styles.value}>{selectedRequest.notes}</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.modalActions}>
-                    {selectedRequest.type === 'park' && (
-                      <AccessibleButton
-                        title={parkingRequest ? "Marking as Parked..." : "Mark as Parked"}
-                        onPress={() => handleMarkAsParked(selectedRequest)}
-                        variant="primary"
-                        disabled={parkingRequest}
-                        accessibilityLabel="Mark vehicle as parked"
-                        accessibilityHint="Mark this vehicle as successfully parked"
-                        style={styles.modalActionButton}
-                      />
-                    )}
-                    {selectedRequest.type === 'pickup' && (
-                      <AccessibleButton
-                        title={handingOverRequest ? "Completing Handover..." : "Mark as Handed Over"}
-                        onPress={() => handleMarkAsHandedOver(selectedRequest)}
-                        variant="primary"
-                        disabled={handingOverRequest}
-                        accessibilityLabel="Mark handover as complete"
-                        accessibilityHint="Mark this vehicle handover as completed"
-                        style={styles.modalActionButton}
-                      />
-                    )}
-                  </View>
-                </Card.Content>
-              </Card>
-            </View>
-          )}
-        </SafeAreaView>
-      </Modal>
     </SafeAreaView>
   );
 };
@@ -540,6 +342,61 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.md,
+  },
+  activityIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.md,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  activitySubtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  activityTime: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+  actionButton: {
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: SPACING.xs,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: SPACING.md,
+    fontSize: 16,
+    color: '#757575',
+    fontWeight: '500',
   },
   header: {
     backgroundColor: COLORS.primary,
@@ -634,99 +491,6 @@ const styles = StyleSheet.create({
   requestsSection: {
     marginTop: SPACING.md,
   },
-  requestsList: {
-    paddingHorizontal: SPACING.md,
-  },
-  emptyCard: {
-    marginHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    backgroundColor: '#FFFFFF',
-    elevation: 2,
-    padding: SPACING.xl,
-  },
-  requestCard: {
-    margin: SPACING.md,
-    elevation: 2,
-  },
-  acceptedRequestCard: {
-    margin: SPACING.md,
-    elevation: 2,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.secondary,
-  },
-  requestHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  location: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-    marginLeft: SPACING.xs,
-  },
-  typeChip: {
-    alignSelf: 'flex-start',
-  },
-  pickupChip: {
-    backgroundColor: COLORS.warning,
-  },
-  parkChip: {
-    backgroundColor: COLORS.success,
-  },
-  detailsContainer: {
-    marginBottom: SPACING.md,
-  },
-  plate: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
-  },
-  owner: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
-  },
-  phone: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
-  },
-  vehicle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
-  },
-  estimatedTime: {
-    fontSize: 12,
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-  },
-  detailsButton: {
-    flex: 1,
-  },
-  acceptButton: {
-    flex: 1,
-  },
-  parkButton: {
-    flex: 1,
-    backgroundColor: COLORS.success,
-  },
-  pickupButton: {
-    flex: 1,
-    backgroundColor: COLORS.warning,
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -745,110 +509,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: SPACING.sm,
   },
-  emptyList: {
-    flexGrow: 1,
-  },
-  // Modal styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: SPACING.md,
-    backgroundColor: COLORS.card,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
-  },
-  modalBackButton: {
-    padding: SPACING.xs,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary,
-  },
-  modalHeaderSpacer: {
-    width: 32, // Same width as back button for centering
-  },
-  modalContent: {
-    flex: 1,
-    padding: SPACING.md,
-  },
-  modalCard: {
-    flex: 1,
-    elevation: 4,
-  },
-  modalCardContent: {
-    flex: 1,
-    padding: SPACING.lg,
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  statusLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginRight: SPACING.sm,
-  },
-  statusChip: {
-    alignSelf: 'flex-start',
-  },
-  acceptedChip: {
-    backgroundColor: COLORS.secondary,
-  },
-  acceptedStatusChip: {
-    backgroundColor: COLORS.secondary,
-    color: COLORS.card,
-    borderRadius: BORDER_RADIUS.sm,
-  },
-  activeChip: {
-    backgroundColor: COLORS.secondary,
-    color: COLORS.card,
-    borderRadius: BORDER_RADIUS.sm,
-  },
-  section: {
-    marginBottom: SPACING.lg,
-  },
-  availableRequestsSection: {
-    flex: 1,
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
     marginBottom: SPACING.md,
+    marginLeft: SPACING.lg,
   },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-    paddingVertical: SPACING.xs,
+  activityCard: {
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: '#FFFFFF',
+    elevation: 2,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    flex: 1,
-  },
-  value: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    flex: 2,
-    textAlign: 'right',
-  },
-  modalActions: {
-    marginTop: SPACING.xl,
-    gap: SPACING.md,
-  },
-  modalActionButton: {
-    marginBottom: SPACING.sm,
+  emptyStateCard: {
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: '#FFFFFF',
+    elevation: 2,
   },
 });
 

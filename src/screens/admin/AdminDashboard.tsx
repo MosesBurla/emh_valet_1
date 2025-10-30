@@ -180,10 +180,10 @@ const AdminDashboard: React.FC = () => {
               <Text style={styles.headerSubtitle}>Welcome back! Here's your system overview</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.headerAction}>
-            <Icon name="notifications-outline" size={24} color="#FFFFFF" />
+          {/* <TouchableOpacity style={styles.headerAction}>
+            <Icon name="notifications" size={24} color="#FFFFFF" />
             <View style={styles.notificationDot} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
@@ -223,12 +223,6 @@ const AdminDashboard: React.FC = () => {
             {/* Users Card */}
             <Surface style={styles.statsCard} elevation={3}>
               <TouchableOpacity style={styles.statsCardTouchable}>
-                <View style={styles.statsCardHeader}>
-                  <View style={[styles.statsIcon, { backgroundColor: 'rgba(99, 102, 241, 0.1)' }]}>
-                    <Icon name="people" size={24} color="#6366f1" />
-                  </View>
-                  <Icon name="trending-up" size={16} color={COLORS.success} />
-                </View>
                 <Text style={styles.statsNumber}>{stats?.totalUsers || 0}</Text>
                 <Text style={styles.statsLabel}>Total Users</Text>
                 <Text style={styles.statsSubtext}>{stats?.activeUsers || 0} active users</Text>
@@ -238,43 +232,26 @@ const AdminDashboard: React.FC = () => {
             {/* Vehicles Card */}
             <Surface style={styles.statsCard} elevation={3}>
               <TouchableOpacity style={styles.statsCardTouchable}>
-                <View style={styles.statsCardHeader}>
-                  <View style={[styles.statsIcon, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-                    <Icon name="local-parking" size={24} color="#10b981" />
-                  </View>
-                  <Icon name="info" size={16} color={COLORS.textSecondary} />
-                </View>
                 <Text style={styles.statsNumber}>{stats?.totalVehicles || 0}</Text>
                 <Text style={styles.statsLabel}>Total Vehicles</Text>
                 <Text style={styles.statsSubtext}>{stats?.parkedVehicles || 0} currently parked</Text>
               </TouchableOpacity>
             </Surface>
-          </View>
 
-          <View style={styles.statsGrid}>
             {/* Requests Card */}
             <Surface style={styles.statsCard} elevation={3}>
               <TouchableOpacity style={styles.statsCardTouchable}>
-                <View style={styles.statsCardHeader}>
-                  <View style={[styles.statsIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
-                    <Icon name="assignment" size={24} color="#8b5cf6" />
-                  </View>
-                </View>
                 <Text style={styles.statsNumber}>{stats?.totalRequests || 0}</Text>
                 <Text style={styles.statsLabel}>Total Requests</Text>
                 <Text style={styles.statsSubtext}>All time requests</Text>
               </TouchableOpacity>
             </Surface>
+          </View>
 
+          <View style={styles.statsGrid}>
             {/* Completed Card */}
             <Surface style={styles.statsCard} elevation={3}>
               <TouchableOpacity style={styles.statsCardTouchable}>
-                <View style={styles.statsCardHeader}>
-                  <View style={[styles.statsIcon, { backgroundColor: 'rgba(34, 197, 94, 0.1)' }]}>
-                    <Icon name="check-circle" size={24} color="#22c55e" />
-                  </View>
-                  <Icon name="verified" size={16} color={COLORS.success} />
-                </View>
                 <Text style={styles.statsNumber}>
                   {stats?.requestsByStatus?.find((s: any) => s._id === 'completed' || s._id === 'verified' || s._id === 'self_pickup')?.count || 0}
                 </Text>
@@ -282,17 +259,10 @@ const AdminDashboard: React.FC = () => {
                 <Text style={styles.statsSubtext}>Successfully finished</Text>
               </TouchableOpacity>
             </Surface>
-          </View>
 
-          <View style={styles.statsGrid}>
             {/* Rating Card */}
             <Surface style={styles.statsCard} elevation={3}>
               <TouchableOpacity style={styles.statsCardTouchable}>
-                <View style={styles.statsCardHeader}>
-                  <View style={[styles.statsIcon, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
-                    <Icon name="star" size={24} color="#f59e0b" />
-                  </View>
-                </View>
                 <Text style={styles.statsNumber}>
                   {stats?.feedbackStats?.avgRating ? stats.feedbackStats.avgRating.toFixed(1) : '0.0'}
                 </Text>
@@ -304,11 +274,6 @@ const AdminDashboard: React.FC = () => {
             {/* Available Card */}
             <Surface style={styles.statsCard} elevation={3}>
               <TouchableOpacity style={styles.statsCardTouchable}>
-                <View style={styles.statsCardHeader}>
-                  <View style={[styles.statsIcon, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
-                    <Icon name="electric-car" size={24} color="#3b82f6" />
-                  </View>
-                </View>
                 <Text style={styles.statsNumber}>
                   {stats?.vehiclesByStatus?.find((s: any) => s._id === 'available')?.count || 0}
                 </Text>
@@ -348,7 +313,7 @@ const AdminDashboard: React.FC = () => {
         </View>
 
         {/* Pending Approvals */}
-        {pendingUsers.length > 0 && (
+        {/* {pendingUsers.length > 0 && (
           <View style={styles.approvalsSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Pending Approvals</Text>
@@ -402,7 +367,7 @@ const AdminDashboard: React.FC = () => {
               )}
             </Surface>
           </View>
-        )}
+        )} */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -503,7 +468,7 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.md,
   },
   statsSection: {
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
   },
   sectionTitle: {
     fontSize: 18,
@@ -526,37 +491,25 @@ const styles = StyleSheet.create({
   statsCardTouchable: {
     padding: SPACING.md,
   },
-  statsCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-  },
-  statsIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
   statsNumber: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
     marginBottom: SPACING.xs,
   },
   statsLabel: {
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.textSecondary,
     fontWeight: '500',
     marginBottom: 2,
   },
   statsSubtext: {
-    fontSize: 12,
+    fontSize: 10,
     color: COLORS.textSecondary,
   },
   actionsSection: {
-    marginTop: SPACING.md,
+    marginTop: SPACING.xs,
   },
   actionsGrid: {
     flexDirection: 'row',

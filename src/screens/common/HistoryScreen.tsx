@@ -497,16 +497,28 @@ const HistoryScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={COLORS.surface}
-        translucent={false}
-      />
+      <StatusBar backgroundColor={COLORS.primary} barStyle="light-content" />
+
+      {/* Modern Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <View style={styles.avatar}>
+              <Icon name="history" size={24} color="#FFFFFF" />
+            </View>
+            <View style={styles.headerText}>
+              <Text style={styles.headerTitle}>Request History</Text>
+              <Text style={styles.headerSubtitle}>Your parking activity log</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
       {/* Search and Filter Row */}
       <View style={styles.searchFilterContainer}>
         <View style={styles.searchBarContainer}>
           <Searchbar
-            placeholder="license plate or driver phone"
+            placeholder="license plate or driver name"
             onChangeText={setSearchQuery}
             value={searchQuery}
             style={styles.searchBar}
@@ -526,11 +538,6 @@ const HistoryScreen: React.FC = () => {
         >
           <Icon name="filter-list" size={24} color={COLORS.primary} />
         </TouchableOpacity>
-      </View>
-
-      {/* Enhanced Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Request History</Text>
       </View>
 
       {/* Modern Filter Bottom Sheet */}
@@ -980,16 +987,43 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xl,
+    paddingTop: SPACING.xl + 10,
+  },
+  headerContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: SPACING.md,
-    backgroundColor: COLORS.surface,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    justifyContent: 'space-between',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.md,
+  },
+  headerText: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 20,
   },
   headerActions: {
     flexDirection: 'row',
@@ -1015,7 +1049,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.xl, // Increased top padding for better status bar spacing
+    paddingTop: SPACING.md, // Increased top padding for better status bar spacing
     paddingBottom: SPACING.sm,
     backgroundColor: COLORS.surface,
   },

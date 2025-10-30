@@ -153,34 +153,45 @@ const RequestPickupScreen: React.FC = () => {
   }, [searchQuery, parkedVehicles]);
 
   const renderVehicleItem = ({ item }: { item: ParkedVehicle }) => (
-    <Surface style={styles.vehicleCard} elevation={1}>
+    <Surface style={styles.vehicleCard} elevation={3}>
       <View style={styles.vehicleContent}>
-        <View style={styles.vehicleInfo}>
-          <Text style={styles.licensePlate}>{item.number}</Text>
-          <Text style={styles.customerName}>{item.ownerName}</Text>
+        <View style={[styles.vehicleIcon, { backgroundColor: item.isVerified ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)' }]}>
+          <Icon name="directions-car" size={24} color={item.isVerified ? "#10b981" : "#f59e0b"} />
         </View>
-        {item.isVerified ? (
-          <TouchableOpacity
-            style={[
-              styles.pickupButton,
-              submittingPickup === item.id && styles.pickupButtonDisabled
-            ]}
-            onPress={() => handleRequestPickup(item)}
-            disabled={submittingPickup === item.id}
-          >
-            <Text style={[
-              styles.pickupButtonText,
-              submittingPickup === item.id && styles.pickupButtonTextDisabled
-            ]}>
-              {submittingPickup === item.id ? "Creating..." : "Pickup"}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.verificationPendingContainer}>
-            <Icon name="hourglass-empty" size={20} color={COLORS.warning} />
-            <Text style={styles.verificationPendingText}>Verification Pending</Text>
-          </View>
-        )}
+        <View style={styles.vehicleDetails}>
+          <Text style={styles.licensePlate}>{item.number}</Text>
+          <Text style={styles.vehicleModel}>{item.make} {item.model}</Text>
+        
+          <Text style={styles.customerName}>{item.ownerName}</Text>
+          <Text style={styles.parkedTime}>
+            Parked: {new Date(item.createdAt).toLocaleDateString()} at {new Date(item.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+          </Text>
+        </View>
+        <View style={styles.actionContainer}>
+          {item.isVerified ? (
+            <TouchableOpacity
+              style={[
+                styles.pickupButton,
+                submittingPickup === item.id && styles.pickupButtonDisabled
+              ]}
+              onPress={() => handleRequestPickup(item)}
+              disabled={submittingPickup === item.id}
+            >
+              <Icon name="local-shipping" size={16} color="#FFFFFF" />
+              <Text style={[
+                styles.pickupButtonText,
+                submittingPickup === item.id && styles.pickupButtonTextDisabled
+              ]}>
+                {submittingPickup === item.id ? "•••" : "Pickup"}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.verificationPendingContainer}>
+              <Icon name="hourglass-empty" size={16} color={COLORS.warning} />
+              <Text style={styles.verificationPendingText}>Pending</Text>
+            </View>
+          )}
+        </View>
       </View>
     </Surface>
   );
@@ -228,6 +239,14 @@ const RequestPickupScreen: React.FC = () => {
             onChangeText={setSearchQuery}
             placeholderTextColor={COLORS.textSecondary}
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={() => setSearchQuery('')}
+            >
+              <Icon name="close" size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -324,49 +343,85 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textPrimary,
   },
+  clearButton: {
+    marginLeft: SPACING.sm,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   listContainer: {
     padding: SPACING.md,
     paddingBottom: SPACING.xl,
   },
   vehicleCard: {
-    borderRadius: BORDER_RADIUS.md,
+    flex: 1,
+    margin: SPACING.xs,
+    borderRadius: BORDER_RADIUS.lg,
     backgroundColor: '#FFFFFF',
-    marginBottom: SPACING.sm,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary,
+    elevation: 3,
+    padding: SPACING.md,
   },
   vehicleContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: SPACING.md,
   },
-  vehicleInfo: {
+  vehicleIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.md,
+  },
+  vehicleDetails: {
     flex: 1,
   },
   licensePlate: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.primary,
     marginBottom: SPACING.xs,
   },
+  vehicleModel: {
+    fontSize: 13,
+    color: COLORS.textPrimary,
+    fontWeight: '600',
+    marginBottom: SPACING.xs,
+  },
+  vehicleColor: {
+    fontSize: 13,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.xs,
+  },
   customerName: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+  },
+  parkedTime: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+  actionContainer: {
+    alignItems: 'flex-start',
+    justifyContent: 'center',
   },
   pickupButton: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.sm,
+    minWidth: 80,
+    alignItems: 'center',
   },
   pickupButtonDisabled: {
     backgroundColor: COLORS.textSecondary,
   },
   pickupButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   pickupButtonTextDisabled: {
     color: '#FFFFFF',
@@ -383,19 +438,19 @@ const styles = StyleSheet.create({
   verificationPendingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
     backgroundColor: COLORS.warning + '20',
     borderRadius: BORDER_RADIUS.sm,
     borderWidth: 1,
     borderColor: COLORS.warning + '40',
+    minHeight: 36,
   },
   verificationPendingText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: 'bold',
     color: COLORS.warning,
-    marginLeft: SPACING.sm,
+    marginLeft: 4,
   },
   emptyContainer: {
     flex: 1,

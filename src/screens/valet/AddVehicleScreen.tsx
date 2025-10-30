@@ -8,6 +8,8 @@ import {
   SafeAreaView,
   StatusBar,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { TextInput, Surface } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -35,13 +37,28 @@ const AddVehicleScreen: React.FC = () => {
     phoneNumber: '',
     customerName: '',
     licensePlate: '',
+    make: '',
+    model: '',
   });
   const [resetAutocomplete, setResetAutocomplete] = useState(false);
+  const [errors, setErrors] = useState({
+    licensePlate: false,
+    make: false,
+    model: false,
+    phoneNumber: false,
+    customerName: false,
+  });
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
+    }));
+
+    // Clear error for this field
+    setErrors(prev => ({
+      ...prev,
+      [field]: false,
     }));
 
     // Reset selection state when user manually types in license plate field
@@ -60,24 +77,19 @@ const AddVehicleScreen: React.FC = () => {
   };
 
   const validateForm = () => {
-    const { phoneNumber, customerName, licensePlate } = formData;
+    const { phoneNumber, customerName, licensePlate, make, model } = formData;
 
-    if (!licensePlate.trim()) {
-      Alert.alert('Error', 'License plate is required');
-      return false;
-    }
+    const newErrors = {
+      licensePlate: !licensePlate.trim(),
+      make: !make.trim(),
+      model: !model.trim(),
+      phoneNumber: !phoneNumber.trim(),
+      customerName: !customerName.trim(),
+    };
 
-    if (!phoneNumber.trim()) {
-      Alert.alert('Error', 'Phone number is required');
-      return false;
-    }
+    setErrors(newErrors);
 
-    if (!customerName.trim()) {
-      Alert.alert('Error', 'Customer name is required');
-      return false;
-    }
-
-    return true;
+    return Object.values(newErrors).every(error => !error);
   };
 
 
@@ -90,7 +102,8 @@ const AddVehicleScreen: React.FC = () => {
         phoneNumber: formData.phoneNumber,
         customerName: formData.customerName,
         licensePlate: formData.licensePlate,
-        // make, model, color are now optional in the API service
+        make: formData.make,
+        model: formData.model,
       });
 
       // Check standardized API response
@@ -258,8 +271,9 @@ const AddVehicleScreen: React.FC = () => {
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <Surface style={styles.formCard} elevation={2}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoiding}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          <Surface style={styles.formCard} elevation={4}>
           <View style={styles.formHeader}>
             <Icon name="local-parking" size={32} color={COLORS.primary} />
             <Text style={styles.formTitle}>Park New Vehicle</Text>
@@ -281,6 +295,33 @@ const AddVehicleScreen: React.FC = () => {
                 stopSearchAfterSelect={true}
                 resetSelection={resetAutocomplete}
               />
+
+              {/* Make and Model in a row */}
+              <View style={styles.row}>
+                <TextInput
+                  label="Make *"
+                  value={formData.make}
+                  onChangeText={(value) => handleInputChange('make', value)}
+                  mode="outlined"
+                  style={[styles.input, styles.halfInput]}
+                  placeholder="e.g., Honda"
+                  error={errors.make}
+                  accessibilityLabel="Vehicle make input"
+                  accessibilityHint="Enter vehicle make (required)"
+                />
+
+                <TextInput
+                  label="Model *"
+                  value={formData.model}
+                  onChangeText={(value) => handleInputChange('model', value)}
+                  mode="outlined"
+                  style={[styles.input, styles.halfInput]}
+                  placeholder="e.g., 2024"
+                  error={errors.model}
+                  accessibilityLabel="Vehicle model input"
+                  accessibilityHint="Enter vehicle model (required)"
+                />
+              </View>
             </View>
 
             {/* Customer Information */}
@@ -295,6 +336,7 @@ const AddVehicleScreen: React.FC = () => {
                 keyboardType="phone-pad"
                 style={styles.input}
                 placeholder="+1234567890"
+                error={errors.phoneNumber}
                 accessibilityLabel="Phone number input"
                 accessibilityHint="Enter customer's phone number (required)"
               />
@@ -306,6 +348,7 @@ const AddVehicleScreen: React.FC = () => {
                 mode="outlined"
                 style={styles.input}
                 placeholder="Enter customer name"
+                error={errors.customerName}
                 accessibilityLabel="Customer name input"
                 accessibilityHint="Enter customer's full name (required)"
               />
@@ -325,6 +368,7 @@ const AddVehicleScreen: React.FC = () => {
           </View>
         </Surface>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -371,16 +415,16 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: SPACING.md,
-    paddingBottom: SPACING.xl,
+    paddingBottom: SPACING.md,
   },
   formCard: {
     borderRadius: BORDER_RADIUS.lg,
     backgroundColor: '#FFFFFF',
-    padding: SPACING.lg,
+    padding: SPACING.md,
   },
   formHeader: {
     alignItems: 'center',
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.md,
   },
   formTitle: {
     fontSize: 20,
@@ -398,20 +442,32 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   section: {
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.sm,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   input: {
     marginBottom: SPACING.md,
     backgroundColor: '#FFFFFF',
   },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  halfInput: {
+    flex: 0.48, // slightly less than 0.5 for margin
+    marginBottom: SPACING.md,
+    backgroundColor: '#FFFFFF',
+  },
+  keyboardAvoiding: {
+    flex: 1,
+  },
   submitButton: {
-    marginTop: SPACING.lg,
+    marginTop: SPACING.sm,
   },
 });
 

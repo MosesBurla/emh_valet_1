@@ -9,8 +9,10 @@ import {
   Alert,
   SafeAreaView,
   TextInput,
+  TouchableOpacity,
+  StatusBar,
 } from 'react-native';
-import { Card } from 'react-native-paper';
+import { Card, Surface } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -118,6 +120,7 @@ const ParkLocationDashboard: React.FC = () => {
     if (result.success) {
       Alert.alert('Success', 'Vehicle verified successfully');
       await loadParkedVehicles();
+      setSearchText(''); // Clear search input after successful verification
     } else {
       Alert.alert('Error', result.message || 'Failed to verify vehicle');
     }
@@ -139,49 +142,77 @@ const ParkLocationDashboard: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor={COLORS.primary} barStyle="light-content" />
+
+      {/* Modern Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <View style={styles.avatar}>
+              <Icon name="location-city" size={24} color="#FFFFFF" />
+            </View>
+            <View style={styles.headerText}>
+              <Text style={styles.headerTitle}>Parked Vehicles Dashboard</Text>
+              <Text style={styles.headerSubtitle}>Manage parking operations</Text>
+            </View>
+          </View>
+          {/* <TouchableOpacity style={styles.headerAction} onPress={handleLogout}>
+            <Icon name="logout" size={24} color="#FFFFFF" />
+          </TouchableOpacity> */}
+        </View>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+            progressBackgroundColor="#FFFFFF"
+          />
         }
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <View style={styles.titleContainer}>
-              <Icon name="location-city" size={28} color={COLORS.primary} />
-              <Text style={styles.title}>Park Location</Text>
-            </View>
-            <AccessibleButton
-              title="Logout"
-              onPress={handleLogout}
-              variant="outline"
-              size="small"
-              accessibilityLabel="Logout button"
-              accessibilityHint="Tap to logout from the application"
-              style={styles.logoutButton}
-            />
+
+        {/* Statistics Grid */}
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionTitle}>Today's Overview</Text>
+
+          <View style={styles.statsGrid}>
+            <Surface style={styles.statsCard} elevation={3}>
+              <View style={styles.statsCardContent}>
+                <View style={styles.statsCardHeader}>
+                  <View style={[styles.statsIcon, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
+                    <Icon name="warning" size={24} color="#f59e0b" />
+                  </View>
+                </View>
+                <Text style={styles.statsNumber}>{parkedVehicles.filter(v => !v.isVerified).length}</Text>
+                <Text style={styles.statsLabel}>Need Verification</Text>
+                <Text style={styles.statsSubtext}>Awaiting validation</Text>
+              </View>
+            </Surface>
+
+            <Surface style={styles.statsCard} elevation={3}>
+              <View style={styles.statsCardContent}>
+                <View style={styles.statsCardHeader}>
+                  <View style={[styles.statsIcon, { backgroundColor: 'rgba(34, 197, 94, 0.1)' }]}>
+                    <Icon name="check-circle" size={24} color="#22c55e" />
+                  </View>
+                </View>
+                <Text style={styles.statsNumber}>{parkedVehicles.length}</Text>
+                <Text style={styles.statsLabel}>Total Parked</Text>
+                <Text style={styles.statsSubtext}>All verified vehicles</Text>
+              </View>
+            </Surface>
           </View>
         </View>
 
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <Icon name="local-parking" size={24} color={COLORS.primary} />
-            </View>
-            <Text style={styles.statNumber}>{parkedVehicles.length}</Text>
-            <Text style={styles.statLabel}>Parked Vehicles</Text>
-          </View>
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <Icon name="verified" size={24} color={COLORS.success} />
-            </View>
-            <Text style={styles.statNumber}>89</Text>
-            <Text style={styles.statLabel}>Verified Today</Text>
-          </View>
-        </View>
 
 
-
+        {/* Parked Vehicles Section */}
         <View style={styles.parkedVehiclesContainer}>
           <Text style={styles.sectionTitle}>Parked Vehicles</Text>
           <TextInput
@@ -192,45 +223,46 @@ const ParkLocationDashboard: React.FC = () => {
             placeholderTextColor={COLORS.textSecondary}
           />
           {filteredVehicles.length > 0 ? (
-            <FlatList
-              data={filteredVehicles}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <Card style={styles.vehicleCard}>
-                  <Card.Content>
-                    <View style={styles.vehicleRow}>
-                      <Text style={styles.vehicleLicensePlate}>{item.licensePlate}</Text>
-                      <Text style={styles.vehicleStatus}>{item.status}</Text>
+            <Card style={styles.activityCard}>
+              {filteredVehicles.map((item, index) => {
+                const isVerified = item.isVerified;
+                return (
+                  <View key={item.id || index} style={styles.activityItem}>
+                    <View style={[styles.activityIcon, { backgroundColor: isVerified ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)' }]}>
+                      <Icon name="directions-car" size={24} color={isVerified ? "#10b981" : "#f59e0b"} />
                     </View>
-                    <Text style={styles.vehicleOwner}>Owner: {item.ownerName} ({item.ownerPhone})</Text>
-                    <Text style={styles.vehicleDetails}>
-                      {item.vehicleMake} {item.vehicleModel} ({item.vehicleColor}) - Location: {item.location}
-                    </Text>
-                    {!item.isVerified && (
-                      <AccessibleButton
-                        title="Verify"
+                    <View style={styles.activityContent}>
+                      <Text style={styles.activityTitle}>{item.licensePlate}</Text>
+                      <Text style={styles.activitySubtitle}>
+                        {item.ownerName} • {item.vehicleMake} {item.vehicleModel} ({item.vehicleColor})
+                      </Text>
+                      <Text style={styles.activityTime}>
+                        Parked: {new Date(item.createdAt).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    {!isVerified ? (
+                      <TouchableOpacity
+                        style={[styles.actionButton, { backgroundColor: COLORS.warning }]}
                         onPress={() => handleVerify(item.licensePlate)}
-                        variant="primary"
-                        size="small"
-                        accessibilityLabel="Verify vehicle"
-                        style={styles.verifyButton}
-                      />
-                    )}
-                    {item.isVerified && (
-                      <AccessibleButton
-                        title="Mark Self Pickup"
+                      >
+                        <Icon name="check" size={20} color="#FFFFFF" />
+                        <Text style={styles.actionButtonText}>Verify</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={[styles.actionButton, { backgroundColor: COLORS.primary }]}
                         onPress={() => handleMarkSelfPickup(item.id)}
-                        variant="secondary"
-                        size="small"
-                        accessibilityLabel="Mark vehicle for self pickup"
-                        style={styles.selfPickupButton}
-                      />
+                      >
+                        <Icon name="local-shipping" size={20} color="#FFFFFF" />
+                        <Text style={styles.actionButtonText}>Pickup</Text>
+                    
+                        
+                      </TouchableOpacity>
                     )}
-                  </Card.Content>
-                </Card>
-              )}
-              scrollEnabled={false}
-            />
+                  </View>
+                );
+              })}
+            </Card>
           ) : searchText ? (
             <Card style={styles.addCard}>
               <Card.Content style={styles.addContainer}>
@@ -271,15 +303,52 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: SPACING.xl,
+  },
   header: {
-    backgroundColor: COLORS.card,
-    padding: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xl,
+    paddingTop: SPACING.xl + 10,
   },
   headerContent: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.md,
+  },
+  headerText: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 20,
+  },
+  headerAction: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   titleContainer: {
@@ -295,39 +364,58 @@ const styles = StyleSheet.create({
   logoutButton: {
     marginLeft: SPACING.md,
   },
-  statsContainer: {
+  statsSection: {
+    marginTop: SPACING.md,
+  },
+  statsGrid: {
     flexDirection: 'row',
-    padding: SPACING.md,
-    backgroundColor: COLORS.backgroundSecondary,
+    paddingHorizontal: SPACING.md,
+    marginBottom: SPACING.md,
   },
-  statCard: {
+  statsCard: {
     flex: 1,
-    alignItems: 'center',
-    padding: SPACING.md,
     margin: SPACING.xs,
-    backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.lg,
-    elevation: 2,
+    backgroundColor: '#FFFFFF',
   },
-  statIconContainer: {
+  statsCardContent: {
+    padding: SPACING.md,
+  },
+  statsCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: SPACING.sm,
   },
-  statNumber: {
-    fontSize: 28,
+  statsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statsNumber: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
     marginBottom: SPACING.xs,
   },
-  statLabel: {
+  statsLabel: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  statsSubtext: {
     fontSize: 12,
     color: COLORS.textSecondary,
-    textAlign: 'center',
   },
   quickActionsContainer: {
     padding: SPACING.md,
   },
   sectionTitle: {
     fontSize: 18,
+    marginLeft:SPACING.lg,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
     marginBottom: SPACING.md,
@@ -337,10 +425,56 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   actionButton: {
-    flex: 0.48,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: SPACING.xs,
   },
   parkedVehiclesContainer: {
     padding: SPACING.md,
+  },
+  activityCard: {
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: '#FFFFFF',
+    elevation: 2,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.md,
+  },
+  activityIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.md,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  activitySubtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  activityTime: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
   },
   vehicleCard: {
     marginBottom: SPACING.md,
