@@ -23,6 +23,7 @@ import SocketService from '../../services/SocketService';
 import { ParkingRequest } from '../../types';
 import { COLORS, SPACING, BORDER_RADIUS, USER_ROLES, STORAGE_KEYS } from '../../constants';
 import { apiService } from '../../services/ApiService';
+import { locationService } from '../../services/LocationService';
 
 type RootStackParamList = {
   DriverDashboard: undefined;
@@ -40,6 +41,64 @@ const DriverDashboard: React.FC = () => {
   const [acceptingRequest, setAcceptingRequest] = useState(false);
   const [parkingRequest, setParkingRequest] = useState(false);
   const [handingOverRequest, setHandingOverRequest] = useState(false);
+
+  // Fixed parking location coordinates
+  const PARKING_LOCATION = {
+    latitude: 17.530411,
+    longitude: 78.440178,
+  };
+
+  // Distance calculation utility function using Haversine formula
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // Distance in meters
+  };
+
+  // Location verification function
+  const verifyParkingLocation = async (): Promise<boolean> => {
+    try {
+      // Get driver's current location
+      const driverLocation = await locationService.getCurrentLocation();
+
+      if (!driverLocation) {
+        Alert.alert('Location Required', 'Unable to get your current location. Please enable location services and try again.');
+        return false;
+      }
+
+      // Calculate distance from driver to parking location
+      const distance = calculateDistance(
+        driverLocation.latitude,
+        driverLocation.longitude,
+        PARKING_LOCATION.latitude,
+        PARKING_LOCATION.longitude
+      );
+
+      // Check if driver is within 100 meters of parking location
+      if (distance > 100) {
+        Alert.alert(
+          'Location Verification Failed',
+          `You must be at the parking location to perform this action. Current distance: ${distance.toFixed(1)} meters. Required: within 100 meters.`
+        );
+        return false;
+      }
+
+      return true; // Driver is at parking location
+    } catch (error) {
+      console.error('Location verification error:', error);
+      Alert.alert('Location Error', 'Failed to verify your location. Please try again.');
+      return false;
+    }
+  };
 
   useEffect(() => {
     loadRequests();
@@ -119,7 +178,47 @@ const DriverDashboard: React.FC = () => {
   const handleAcceptRequest = async (request: ParkingRequest) => {
     setAcceptingRequest(true);
     try {
-      // Call the backend API to accept the request
+      // Verify driver is at parking location before accepting pickup requests
+      if (request.type === 'pickup') {
+        const isAtParkingLocation = await verifyParkingLocation();
+        if (!isAtParkingLocation) {
+          return; // Location verification failed, don't proceed
+        }
+      }
+
+      // For park requests, check against the request's locationFrom (valet location)
+      if (request.type === 'park') {
+        if (!request.locationFrom?.latitude || !request.locationFrom?.longitude) {
+          Alert.alert('Invalid Request', 'Request location information is missing.');
+          return;
+        }
+
+        // Get driver's current location
+        const driverLocation = await locationService.getCurrentLocation();
+        if (!driverLocation) {
+          Alert.alert('Location Required', 'Unable to get your current location. Please enable location services and try again.');
+          return;
+        }
+
+        // Calculate distance between driver and valet location
+        const distance = calculateDistance(
+          driverLocation.latitude,
+          driverLocation.longitude,
+          request.locationFrom.latitude,
+          request.locationFrom.longitude
+        );
+
+        // For park requests, still use 10 meters range to pickup from customer
+        if (distance > 10) {
+          Alert.alert(
+            'Location Verification Failed',
+            `You must be at the customer's location to accept this parking request. Current distance: ${distance.toFixed(1)} meters.`
+          );
+          return;
+        }
+      }
+
+      // Driver is at correct location, proceed with accepting the request
       const result = await apiService.acceptRequest(request.id);
 
       if (result.success) {
@@ -156,6 +255,12 @@ const DriverDashboard: React.FC = () => {
   const handleMarkAsParked = async (request: ParkingRequest) => {
     setParkingRequest(true);
     try {
+      // Verify driver is at parking location before marking vehicle as parked
+      const isAtParkingLocation = await verifyParkingLocation();
+      if (!isAtParkingLocation) {
+        return; // Location verification failed, don't proceed
+      }
+
       const result = await apiService.markParked(request.id);
 
       if (result.success) {

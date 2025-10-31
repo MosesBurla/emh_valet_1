@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { STORAGE_KEYS } from '../constants';
 import ApiResponse from './ApiResponse';
 
@@ -90,8 +91,8 @@ class ApiService {
 
   constructor() {
     // Use environment variable or default to localhost
-     this.baseURL = 'https://emh-valet-service-1.onrender.com/api';
-    //this.baseURL = 'http://192.168.1.4:3000/api';
+     //this.baseURL = 'https://emh-valet-service-1.onrender.com/api';
+    this.baseURL = 'http://192.168.1.4:3000/api';
   }
 
   private async getAuthHeaders(): Promise<{ [key: string]: string }> {
@@ -435,13 +436,13 @@ class ApiService {
     photoUrl?: string;
     licenseDetails?: any;
     defaultLocation?: {
-      lat: number;
-      lng: number;
+      latitude: number;
+      longitude: number;
       address: string;
     };
     role?: string;
   }): Promise<{ success: boolean; data: User | null; message: string; error: any; timestamp: string }> {
-    const response = await this.makeRequest(`/admin/edit-user/${userId}`, {
+    const response = await this.makeRequest<User>(`/admin/edit-user/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
@@ -592,6 +593,10 @@ class ApiService {
     make?: string;
     model?: string;
     color?: string;
+    locationFrom?: {
+      latitude: number;
+      longitude: number;
+    };
   }): Promise<{ success: boolean; data: any | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/supervisor/create-park-request', {
       method: 'POST',
@@ -729,42 +734,7 @@ class ApiService {
     }
   }
 
-  // Location services
-  async getCurrentLocation(): Promise<{ lat: number; lng: number } | null> {
-    return new Promise((resolve) => {
-      // @ts-ignore - React Native geolocation
-      navigator.geolocation.getCurrentPosition(
-        (position: any) => {
-          resolve({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        (error: any) => {
-          console.error('Error getting location:', error);
-          resolve(null);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-      );
-    });
-  }
 
-  async getAddressFromCoordinates(lat: number, lng: number): Promise<string | null> {
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=YOUR_GOOGLE_MAPS_API_KEY`
-      );
-      const data = await response.json();
-
-      if (data.status === 'OK') {
-        return data.results[0]?.formatted_address || null;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error getting address:', error);
-      return null;
-    }
-  }
 }
 
 export const apiService = new ApiService();

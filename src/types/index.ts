@@ -44,8 +44,8 @@ export interface ParkingRequest {
   isVerified?: boolean;
   // Additional fields from API response
   locationFrom?: {
-    lat: number;
-    lng: number;
+    latitude: number;
+    longitude: number;
   };
   vehicleId?: {
     _id: string;

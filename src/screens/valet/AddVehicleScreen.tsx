@@ -22,6 +22,7 @@ import VehicleAutocomplete from '../../components/VehicleAutocomplete';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants';
 import { apiService, Vehicle } from '../../services/ApiService';
 import ApiResponse from '../../services/ApiResponse';
+import { getCurrentLocation } from '../../services/LocationService';
 
 type RootStackParamList = {
   AddVehicle: undefined;
@@ -98,12 +99,24 @@ const AddVehicleScreen: React.FC = () => {
 
     setLoading(true);
     try {
+      // Get current location using the dedicated location service
+     const loc = await getCurrentLocation();
+      if (!loc) {
+        // Location service handles its own error alerts
+        setLoading(false);
+        return;
+      }
+
       const result = await apiService.createParkRequest({
         phoneNumber: formData.phoneNumber,
         customerName: formData.customerName,
         licensePlate: formData.licensePlate,
         make: formData.make,
         model: formData.model,
+        locationFrom: {
+          latitude: loc.latitude,
+          longitude: loc.longitude
+        },
       });
 
       // Check standardized API response
