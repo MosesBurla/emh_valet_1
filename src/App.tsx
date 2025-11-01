@@ -30,8 +30,8 @@ import ParkedVehiclesScreen from './screens/valet/ParkedVehiclesScreen';
 import RequestPickupScreen from './screens/valet/RequestPickupScreen';
 import ParkLocationDashboard from './screens/parkLocation/ParkLocationDashboard';
 
-// Import components
 import RoleBasedTabNavigator from './components/RoleBasedTabNavigator';
+
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -41,9 +41,30 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
-  useEffect(() => {
-    initializeApp();
-  }, []);
+  const initializeApp = async () => {
+    try {
+      // Initialize notifications
+      // NotificationService.configure(); // Temporarily disabled due to AndroidX conflicts
+
+      // Check for existing authentication
+      const token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      const userData = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA);
+
+      if (token && userData) {
+        const user = JSON.parse(userData);
+        setIsAuthenticated(true);
+        setUser(user);
+
+        // Initialize socket connection for real-time updates
+        SocketService.connect(user.id, user.role);
+        console.log(`🔗 Socket connected for user: ${user.name} (${user.role})`);
+      }
+    } catch (error) {
+      console.error('Error initializing app:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Listen for authentication state changes
   useEffect(() => {
@@ -75,31 +96,6 @@ const App: React.FC = () => {
       authStateListener.remove();
     };
   }, []);
-
-  const initializeApp = async () => {
-    try {
-      // Initialize notifications
-      // NotificationService.configure(); // Temporarily disabled due to AndroidX conflicts
-
-      // Check for existing authentication
-      const token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-      const userData = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA);
-
-      if (token && userData) {
-        const user = JSON.parse(userData);
-        setIsAuthenticated(true);
-        setUser(user);
-
-        // Initialize socket connection for real-time updates
-        SocketService.connect(user.id, user.role);
-        console.log(`🔗 Socket connected for user: ${user.name} (${user.role})`);
-      }
-    } catch (error) {
-      console.error('Error initializing app:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Check authentication status periodically
   useEffect(() => {
@@ -190,6 +186,11 @@ const App: React.FC = () => {
         break;
     }
   };
+
+  // Initialize app on mount
+  useEffect(() => {
+    initializeApp();
+  }, []);
 
   const getDashboardComponent = (userRole: string) => {
     switch (userRole) {
