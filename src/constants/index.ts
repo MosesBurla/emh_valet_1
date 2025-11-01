@@ -171,7 +171,7 @@ export const API_ENDPOINTS = {
 } as const;
 
 export const VALIDATION_RULES = {
-  PHONE_REGEX: /^\+?[1-9]\d{1,14}$/,
+  PHONE_REGEX: /^([6789]\d{9})$/,
   EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   LICENSE_PLATE_REGEX: /^[A-Z0-9-]+$/,
   PASSWORD_MIN_LENGTH: 8,

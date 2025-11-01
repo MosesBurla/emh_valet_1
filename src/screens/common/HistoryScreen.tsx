@@ -14,7 +14,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { Card, Chip, Searchbar, Menu, Divider, FAB, Badge } from 'react-native-paper';
+import { Card, Chip, Searchbar, Menu, Divider, FAB, Badge, Snackbar } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -44,22 +44,20 @@ const HistoryScreen: React.FC = () => {
   const [hasMorePages, setHasMorePages] = useState(true);
   const [searching, setSearching] = useState(false);
 
-  // Date selection
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
-  const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
-
   // Enhanced filter states
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [selectedDateRange, setSelectedDateRange] = useState<{start: Date | null, end: Date | null}>({start: null, end: null});
+  const [selectedSingleDate, setSelectedSingleDate] = useState<Date | null>(null);
+  const [dateFilterMode, setDateFilterMode] = useState<'single' | 'custom'>('single');
 
   // Modern filter bottom sheet state
   const [showFilterSheet, setShowFilterSheet] = useState(false);
-  const [filterSheetHeight, setFilterSheetHeight] = useState(0);
 
-  // Date picker state
-  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'start' | 'end'>('start');
+  // Snackbar state
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState<'error' | 'success'>('success');
+  const [showSingleDatePicker, setShowSingleDatePicker] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
@@ -123,7 +121,7 @@ const HistoryScreen: React.FC = () => {
         // Check if the API call was successful
         if (!response.success) {
           console.error('API Error:', response.message || response.error);
-          Alert.alert('Error', response.message || 'Failed to load history');
+          showSnackbar(response.message || 'Failed to load history', 'error');
           return;
         }
 
@@ -221,6 +219,12 @@ const HistoryScreen: React.FC = () => {
     return 'completed';
   };
 
+  const showSnackbar = (message: string, type: 'error' | 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarType(type);
+    setSnackbarVisible(true);
+  };
+
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
@@ -228,7 +232,7 @@ const HistoryScreen: React.FC = () => {
       // Navigation will be handled by parent component
     } catch (error) {
       console.error('Error during logout:', error);
-      Alert.alert('Error', 'Failed to logout');
+      showSnackbar('Failed to logout', 'error');
     }
   };
 
@@ -256,33 +260,47 @@ const HistoryScreen: React.FC = () => {
         return false;
       }
 
-      // Apply date range filter
-      if (selectedDateRange.start && selectedDateRange.end) {
+      // Apply date filters
+      // Priority: 1. Single date, 2. Custom range, 3. Legacy filters (today/week/month), 4. All
+      if (selectedSingleDate) {
+        // Single date filter - match exact date (ignoring time)
+        const itemDate = new Date(item.timestamp).toDateString();
+        const filterDate = selectedSingleDate.toDateString();
+        if (itemDate !== filterDate) {
+          return false;
+        }
+      } else if (selectedDateRange.start && selectedDateRange.end) {
+        // Custom date range filter
         const itemDate = new Date(item.timestamp);
         if (itemDate < selectedDateRange.start || itemDate > selectedDateRange.end) {
           return false;
         }
+      } else {
+        // Legacy date filters
+        if (selectedFilter === 'today') {
+          const today = new Date().toDateString();
+          const itemDate = new Date(item.timestamp).toDateString();
+          if (itemDate !== today) {
+            return false;
+          }
+        } else if (selectedFilter === 'week') {
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          const itemDate = new Date(item.timestamp);
+          if (itemDate < weekAgo) {
+            return false;
+          }
+        } else if (selectedFilter === 'month') {
+          const monthAgo = new Date();
+          monthAgo.setMonth(monthAgo.getMonth() - 1);
+          const itemDate = new Date(item.timestamp);
+          if (itemDate < monthAgo) {
+            return false;
+          }
+        }
+        // Note: selectedFilter === 'all' means no additional date filtering
       }
 
-      // Apply legacy date filters
-      if (selectedFilter === 'all') return matchesSearch;
-      if (selectedFilter === 'today') {
-        const today = new Date().toDateString();
-        const itemDate = new Date(item.timestamp).toDateString();
-        return matchesSearch && itemDate === today;
-      }
-      if (selectedFilter === 'week') {
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        const itemDate = new Date(item.timestamp);
-        return matchesSearch && itemDate >= weekAgo;
-      }
-      if (selectedFilter === 'month') {
-        const monthAgo = new Date();
-        monthAgo.setMonth(monthAgo.getMonth() - 1);
-        const itemDate = new Date(item.timestamp);
-        return matchesSearch && itemDate >= monthAgo;
-      }
       return matchesSearch;
     })
     .sort((a, b) => {
@@ -483,12 +501,11 @@ const HistoryScreen: React.FC = () => {
     }
   };
 
-  const showStartDatePickerModal = () => {
-    setShowStartDatePicker(true);
-  };
-
-  const showEndDatePickerModal = () => {
-    setShowEndDatePicker(true);
+  const onSingleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowSingleDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setSelectedSingleDate(selectedDate);
+    }
   };
 
   if (loading) {
@@ -664,28 +681,131 @@ const HistoryScreen: React.FC = () => {
                     </Chip>
                   ))}
 
+                  {/* Single Date Selection */}
                   <Chip
-                    mode={selectedDateRange.start && selectedDateRange.end ? 'flat' : 'outlined'}
-                    onPress={() => {
-                      setShowCustomDatePicker(true);
-                      setPickerMode('start');
-                    }}
+                    mode={dateFilterMode === 'single' ? 'flat' : 'outlined'}
+                    onPress={() => setDateFilterMode('single')}
                     style={[
                       styles.filterChip,
-                      (selectedDateRange.start && selectedDateRange.end) && styles.filterChipSelected
+                      dateFilterMode === 'single' && styles.filterChipSelected
                     ]}
                     textStyle={[
                       styles.filterChipText,
-                      (selectedDateRange.start && selectedDateRange.end) && styles.filterChipTextSelected
+                      dateFilterMode === 'single' && styles.filterChipTextSelected
                     ]}
-                    icon={(selectedDateRange.start && selectedDateRange.end) ? 'check' : ''}
+                    icon={dateFilterMode === 'single' ? 'check' : ''}
                   >
-                    {selectedDateRange.start && selectedDateRange.end
-                      ? `${selectedDateRange.start.toLocaleDateString()} - ${selectedDateRange.end.toLocaleDateString()}`
-                      : 'Custom Range'
-                    }
+                    Single Date
+                  </Chip>
+
+                  {/* Custom Range Selection */}
+                  <Chip
+                    mode={dateFilterMode === 'custom' ? 'flat' : 'outlined'}
+                    onPress={() => setDateFilterMode('custom')}
+                    style={[
+                      styles.filterChip,
+                      dateFilterMode === 'custom' && styles.filterChipSelected
+                    ]}
+                    textStyle={[
+                      styles.filterChipText,
+                      dateFilterMode === 'custom' && styles.filterChipTextSelected
+                    ]}
+                    icon={dateFilterMode === 'custom' ? 'check' : ''}
+                  >
+                    Custom Range
                   </Chip>
                 </View>
+
+                {/* Date Picker UI - shown based on mode */}
+                {dateFilterMode === 'single' && (
+                  <View style={styles.dateSection}>
+                    <Text style={styles.dateSectionTitle}>Select Date</Text>
+                    <TouchableOpacity
+                      style={styles.singleDatePicker}
+                      onPress={() => setShowSingleDatePicker(true)}
+                    >
+                      <Icon name="calendar-today" size={20} color={COLORS.primary} />
+                      <Text style={[
+                        styles.singleDateText,
+                        !selectedSingleDate && styles.singleDateTextPlaceholder
+                      ]}>
+                        {selectedSingleDate
+                          ? selectedSingleDate.toLocaleDateString()
+                          : 'Select a date'
+                        }
+                      </Text>
+                      {selectedSingleDate && (
+                        <TouchableOpacity
+                          onPress={() => setSelectedSingleDate(null)}
+                          style={styles.clearDateButton}
+                        >
+                          <Icon name="clear" size={16} color={COLORS.textSecondary} />
+                        </TouchableOpacity>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {dateFilterMode === 'custom' && (
+                  <View style={styles.dateSection}>
+                    <Text style={styles.dateSectionTitle}>Date Range</Text>
+                    <View style={styles.rangePickerContainer}>
+                      <TouchableOpacity
+                        style={styles.rangeDatePicker}
+                        onPress={() => setShowStartDatePicker(true)}
+                      >
+                        <Icon name="calendar-today" size={18} color={COLORS.primary} />
+                        <View style={styles.rangeDateContent}>
+                          <Text style={styles.rangeDateLabel}>From</Text>
+                          <Text style={[
+                            styles.rangeDateText,
+                            !selectedDateRange.start && styles.rangeDateTextPlaceholder
+                          ]}>
+                            {selectedDateRange.start
+                              ? selectedDateRange.start.toLocaleDateString()
+                              : 'Select start'
+                            }
+                          </Text>
+                        </View>
+                        {selectedDateRange.start && (
+                          <TouchableOpacity
+                            onPress={() => setSelectedDateRange(prev => ({ ...prev, start: null }))}
+                            style={styles.clearDateButton}
+                          >
+                            <Icon name="clear" size={14} color={COLORS.textSecondary} />
+                          </TouchableOpacity>
+                        )}
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.rangeDatePicker}
+                        onPress={() => setShowEndDatePicker(true)}
+                      >
+                        <Icon name="calendar-today" size={18} color={COLORS.primary} />
+                        <View style={styles.rangeDateContent}>
+                          <Text style={styles.rangeDateLabel}>To</Text>
+                          <Text style={[
+                            styles.rangeDateText,
+                            !selectedDateRange.end && styles.rangeDateTextPlaceholder
+                          ]}>
+                            {selectedDateRange.end
+                              ? selectedDateRange.end.toLocaleDateString()
+                              : 'Select end'
+                            }
+                          </Text>
+                        </View>
+                        {selectedDateRange.end && (
+                          <TouchableOpacity
+                            onPress={() => setSelectedDateRange(prev => ({ ...prev, end: null }))}
+                            style={styles.clearDateButton}
+                          >
+                            <Icon name="clear" size={14} color={COLORS.textSecondary} />
+                          </TouchableOpacity>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
               </View>
             </ScrollView>
 
@@ -697,6 +817,8 @@ const HistoryScreen: React.FC = () => {
                   setSelectedTypeFilter('all');
                   setSelectedStatusFilter('all');
                   setSelectedDateRange({start: null, end: null});
+                  setDateFilterMode('single');
+                  setSelectedSingleDate(null);
                   setShowFilterSheet(false);
                 }}
               >
@@ -717,213 +839,41 @@ const HistoryScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Custom Date Picker Modal */}
-      {showCustomDatePicker && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.datePickerModal}>
-            <View style={styles.filterModalHeader}>
-              <Text style={styles.filterModalTitle}>
-                Select {pickerMode === 'start' ? 'Start' : 'End'} Date
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowCustomDatePicker(false)}
-                style={styles.closeButton}
-              >
-                <Icon name="close" size={24} color={COLORS.textPrimary} />
-              </TouchableOpacity>
-            </View>
+      {/* Inline Date Pickers */}
+      {showSingleDatePicker && (
+        <DateTimePicker
+          value={selectedSingleDate || new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onSingleDateChange}
+          is24Hour={false}
+          minimumDate={new Date(1900, 0, 1)}
+          maximumDate={new Date(2100, 11, 31)}
+        />
+      )}
 
-            <View style={styles.datePickerContent}>
-              {/* Current Selection Display */}
-              <View style={styles.dateSelectionDisplay}>
-                <View style={styles.dateSelectionItem}>
-                  <Text style={styles.dateSelectionLabel}>Start Date:</Text>
-                  <Text style={[
-                    styles.dateSelectionValue,
-                    !selectedDateRange.start && styles.dateSelectionValueEmpty
-                  ]}>
-                    {selectedDateRange.start
-                      ? selectedDateRange.start.toLocaleDateString()
-                      : 'Not selected'
-                    }
-                  </Text>
-                </View>
-                <View style={styles.dateSelectionItem}>
-                  <Text style={styles.dateSelectionLabel}>End Date:</Text>
-                  <Text style={[
-                    styles.dateSelectionValue,
-                    !selectedDateRange.end && styles.dateSelectionValueEmpty
-                  ]}>
-                    {selectedDateRange.end
-                      ? selectedDateRange.end.toLocaleDateString()
-                      : 'Not selected'
-                    }
-                  </Text>
-                </View>
-              </View>
+      {showStartDatePicker && (
+        <DateTimePicker
+          value={selectedDateRange.start || new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onStartDateChange}
+          is24Hour={false}
+          minimumDate={new Date(1900, 0, 1)}
+          maximumDate={new Date(2100, 11, 31)}
+        />
+      )}
 
-              {/* Date Selection Options */}
-              <Text style={styles.filterSectionTitle}>Quick Select</Text>
-              <View style={styles.chipContainer}>
-                <Chip
-                  mode="outlined"
-                  onPress={() => {
-                    const today = new Date();
-                    setSelectedDateRange(prev => ({
-                      ...prev,
-                      [pickerMode]: today
-                    }));
-                    setPickerMode(pickerMode === 'start' ? 'end' : 'start');
-                  }}
-                  style={styles.filterChip}
-                  textStyle={styles.filterChipText}
-                >
-                  Today
-                </Chip>
-
-                <Chip
-                  mode="outlined"
-                  onPress={() => {
-                    const yesterday = new Date();
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    setSelectedDateRange(prev => ({
-                      ...prev,
-                      [pickerMode]: yesterday
-                    }));
-                    setPickerMode(pickerMode === 'start' ? 'end' : 'start');
-                  }}
-                  style={styles.filterChip}
-                  textStyle={styles.filterChipText}
-                >
-                  Yesterday
-                </Chip>
-
-                <Chip
-                  mode="outlined"
-                  onPress={() => {
-                    const weekAgo = new Date();
-                    weekAgo.setDate(weekAgo.getDate() - 7);
-                    setSelectedDateRange(prev => ({
-                      ...prev,
-                      [pickerMode]: weekAgo
-                    }));
-                    setPickerMode(pickerMode === 'start' ? 'end' : 'start');
-                  }}
-                  style={styles.filterChip}
-                  textStyle={styles.filterChipText}
-                >
-                  Week Ago
-                </Chip>
-
-                <Chip
-                  mode="outlined"
-                  onPress={() => {
-                    const monthAgo = new Date();
-                    monthAgo.setMonth(monthAgo.getMonth() - 1);
-                    setSelectedDateRange(prev => ({
-                      ...prev,
-                      [pickerMode]: monthAgo
-                    }));
-                    setPickerMode(pickerMode === 'start' ? 'end' : 'start');
-                  }}
-                  style={styles.filterChip}
-                  textStyle={styles.filterChipText}
-                >
-                  Month Ago
-                </Chip>
-              </View>
-
-              {/* Manual Date Input */}
-              <Text style={styles.filterSectionTitle}>Or Select Date</Text>
-              <View style={styles.dateInputContainer}>
-                <TouchableOpacity
-                  style={styles.dateInputButton}
-                  onPress={showStartDatePickerModal}
-                >
-                  <Icon name="calendar-today" size={20} color={COLORS.primary} />
-                  <Text style={styles.dateInputText}>
-                    {selectedDateRange.start
-                      ? `Start: ${selectedDateRange.start.toLocaleDateString()}`
-                      : 'Select Start Date'
-                    }
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.dateInputButton}
-                  onPress={showEndDatePickerModal}
-                >
-                  <Icon name="event" size={20} color={COLORS.primary} />
-                  <Text style={styles.dateInputText}>
-                    {selectedDateRange.end
-                      ? `End: ${selectedDateRange.end.toLocaleDateString()}`
-                      : 'Select End Date'
-                    }
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Date Time Pickers */}
-              {showStartDatePicker && (
-                <DateTimePicker
-                  value={selectedDateRange.start || new Date()}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={onStartDateChange}
-                  is24Hour={false}
-                  minimumDate={new Date(1900, 0, 1)}
-                  maximumDate={new Date(2100, 11, 31)}
-                />
-              )}
-
-              {showEndDatePicker && (
-                <DateTimePicker
-                  value={selectedDateRange.end || new Date()}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={onEndDateChange}
-                  is24Hour={false}
-                  minimumDate={new Date(1900, 0, 1)}
-                  maximumDate={new Date(2100, 11, 31)}
-                />
-              )}
-            </View>
-
-            <View style={styles.filterModalActions}>
-              <TouchableOpacity
-                style={styles.clearFiltersButton}
-                onPress={() => {
-                  setSelectedDateRange({start: null, end: null});
-                  setShowCustomDatePicker(false);
-                }}
-              >
-                <Text style={styles.clearFiltersText}>Clear</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.applyFiltersButton,
-                  (!selectedDateRange.start || !selectedDateRange.end) && styles.applyFiltersButtonDisabled
-                ]}
-                onPress={() => {
-                  if (selectedDateRange.start && selectedDateRange.end) {
-                    setShowCustomDatePicker(false);
-                    // Force re-filtering
-                    setHistory(prev => [...prev]);
-                  }
-                }}
-                disabled={!selectedDateRange.start || !selectedDateRange.end}
-              >
-                <Text style={[
-                  styles.applyFiltersText,
-                  (!selectedDateRange.start || !selectedDateRange.end) && styles.applyFiltersTextDisabled
-                ]}>
-                  Done
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+      {showEndDatePicker && (
+        <DateTimePicker
+          value={selectedDateRange.end || new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onEndDateChange}
+          is24Hour={false}
+          minimumDate={new Date(1900, 0, 1)}
+          maximumDate={new Date(2100, 11, 31)}
+        />
       )}
 
       {/* Results Summary - Commented out as requested */}
@@ -1656,6 +1606,89 @@ const styles = StyleSheet.create({
   },
   applyFiltersTextDisabled: {
     color: COLORS.surface,
+  },
+  // Date Picker Component Styles
+  dateSection: {
+    marginTop: SPACING.md,
+  },
+  dateSectionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.sm,
+  },
+  singleDatePicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  singleDateText: {
+    fontSize: 16,
+    color: COLORS.primary,
+    marginLeft: SPACING.md,
+    flex: 1,
+    fontWeight: '600',
+  },
+  singleDateTextPlaceholder: {
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
+  },
+  rangePickerContainer: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  rangeDatePicker: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  rangeDateContent: {
+    flex: 1,
+    marginLeft: SPACING.sm,
+  },
+  rangeDateLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  rangeDateText: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  rangeDateTextPlaceholder: {
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
+    fontSize: 13,
+  },
+  clearDateButton: {
+    padding: SPACING.xs,
+    borderRadius: BORDER_RADIUS.xxl,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 });
 

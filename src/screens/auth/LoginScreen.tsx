@@ -6,12 +6,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   SafeAreaView,
   Animated,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
-import { TextInput, Card, Checkbox, ActivityIndicator } from 'react-native-paper';
+import { TextInput, Card, Checkbox, ActivityIndicator, Snackbar } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -47,6 +47,11 @@ const LoginScreen: React.FC = () => {
   const [showChangePhone, setShowChangePhone] = useState(false);
   const [isOtpMode, setIsOtpMode] = useState(false);
   const [verificationId, setVerificationId] = useState<string | null>(null);
+
+  // Snackbar state
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState<'error' | 'success'>('success');
 
   // Animation values
   const fadeAnim = useState(new Animated.Value(0))[0];
@@ -160,11 +165,24 @@ const LoginScreen: React.FC = () => {
         });
       } else {
         console.log('Login failed:', result);
-        Alert.alert('Login Failed', result.message || 'Please check your credentials');
+        if (result.error === 'NotFoundError') {
+          Alert.alert(
+            'User not found',
+            result.message || 'Please register first.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Register', onPress: () => navigation.navigate('Register') }
+            ]
+          );
+        } else if(result.message === 'ForbiddenError'){
+          showSnackbar('Account pending approval', 'error');
+        } else {
+          showSnackbar(result.message || 'Please check your credentials', 'error');
+        }
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      Alert.alert('Error', error.message || 'Unable to verify code. Please try again.');
+      showSnackbar(error.message || 'Unable to verify code. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -172,11 +190,11 @@ const LoginScreen: React.FC = () => {
 
   const handleSendOTP = async () => {
     if (!formData.phone) {
-      Alert.alert('Error', 'Please enter your phone number first');
+      showSnackbar('Please enter your phone number first', 'error');
       return;
     }
     if (!VALIDATION_RULES.PHONE_REGEX.test(formData.phone)) {
-      Alert.alert('Error', 'Please enter a valid phone number');
+      showSnackbar('Please enter a valid phone number', 'error');
       return;
     }
 
@@ -194,13 +212,15 @@ const LoginScreen: React.FC = () => {
         setFormData(prev => ({ ...prev, otp: '' }));
         setErrors({});
 
-        Alert.alert('OTP Sent', result.message || 'A 6-digit verification code has been sent to your phone number');
+        showSnackbar(result.message || 'A 6-digit verification code has been sent to your phone number', 'success');
+      } else if(result.message === 'NotFoundError'){
+        showSnackbar('User not found. Please register first.','error');
       } else {
-        Alert.alert('Error', result.message || 'Failed to send verification code. Please try again.');
+        showSnackbar(result.message || 'Failed to send verification code. Please try again.', 'error');
       }
     } catch (error: any) {
       console.error('Send OTP error:', error);
-      Alert.alert('Error', error.message || 'Failed to send verification code. Please try again.');
+      showSnackbar(error.message || 'Failed to send verification code. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -209,6 +229,12 @@ const LoginScreen: React.FC = () => {
   const handleResendOTP = () => {
     if (countdown > 0) return;
     handleSendOTP();
+  };
+
+  const showSnackbar = (message: string, type: 'error' | 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarType(type);
+    setSnackbarVisible(true);
   };
 
   const handleChangePhone = () => {
@@ -422,6 +448,16 @@ const LoginScreen: React.FC = () => {
         </KeyboardAvoidingView>
 
       </SafeAreaView>
+
+      {/* Snackbar */}
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={4000}
+        style={{ backgroundColor: snackbarType === 'success' ? '#4CAF50' : '#F44336' }}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </View>
   );
 };

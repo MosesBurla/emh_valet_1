@@ -69,11 +69,13 @@ const AddVehicleScreen: React.FC = () => {
   };
 
   const handleVehicleSelect = (vehicle: Vehicle) => {
-    // Auto-populate customer information when a vehicle is selected
+    // Auto-populate customer and vehicle information when a vehicle is selected
     setFormData(prev => ({
       ...prev,
       phoneNumber: vehicle.ownerPhone || '',
       customerName: vehicle.ownerName || '',
+      make: vehicle.make,
+      model: vehicle.model,
     }));
   };
 

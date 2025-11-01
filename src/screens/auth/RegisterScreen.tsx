@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import AccessibleButton from '../../components/AccessibleButton';
-import { COLORS, SPACING, BORDER_RADIUS, STORAGE_KEYS, USER_ROLES } from '../../constants';
+import { COLORS, SPACING, BORDER_RADIUS, STORAGE_KEYS, USER_ROLES, VALIDATION_RULES } from '../../constants';
 import { apiService } from '../../services/ApiService';
 
 type RootStackParamList = {
@@ -38,6 +38,7 @@ const RegisterScreen: React.FC = () => {
     licenseNumber: '',
   });
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{fullName?: string, phone?: string, licenseNumber?: string}>({});
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isPhoneFocused, setIsPhoneFocused] = useState(false);
   const [isLicenseFocused, setIsLicenseFocused] = useState(false);
@@ -84,7 +85,40 @@ const RegisterScreen: React.FC = () => {
     };
   }, []);
 
+  const validate = () => {
+    const newErrors: {fullName?: string, phone?: string, licenseNumber?: string} = {};
+
+    // Validate fullName
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Full name is required';
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = 'Full name must be at least 2 characters';
+    }
+
+    // Validate phone
+    if (!formData.phone) {
+      newErrors.phone = 'Phone number is required';
+    } else if (!VALIDATION_RULES.PHONE_REGEX.test(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
+    }
+
+    // Validate licenseNumber if driver
+    if (formData.role === USER_ROLES.DRIVER) {
+      if (!formData.licenseNumber.trim()) {
+        newErrors.licenseNumber = 'Driver license number is required';
+      } else if (!VALIDATION_RULES.LICENSE_PLATE_REGEX.test(formData.licenseNumber)) {
+        newErrors.licenseNumber = 'Please enter a valid license number (letters, numbers, and hyphens only)';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleRegister = async () => {
+    if (!validate()) {
+      return;
+    }
     setLoading(true);
     try {
       // Prepare registration data
@@ -110,7 +144,7 @@ const RegisterScreen: React.FC = () => {
             text: 'OK',
             onPress: () => {
               // Navigate back to login for OTP verification
-              navigation.navigate('Login');
+              navigation.pop();
             }
           }]
         );
@@ -185,23 +219,29 @@ const RegisterScreen: React.FC = () => {
                     <Text style={[styles.inputLabel, isNameFocused && styles.inputLabelFocused]}>Full Name</Text>
                     <TextInput
                       value={formData.fullName}
-                      onChangeText={(text) => setFormData((prev) => ({ ...prev, fullName: text }))}
+                      onChangeText={(text) => {
+                        setFormData((prev) => ({ ...prev, fullName: text }));
+                        if (errors.fullName) {
+                          setErrors(prev => ({ ...prev, fullName: undefined }));
+                        }
+                      }}
                       onFocus={() => setIsNameFocused(true)}
                       onBlur={() => setIsNameFocused(false)}
                       placeholder="Enter full name"
                       placeholderTextColor={COLORS.textMuted}
-                      style={[styles.input, isNameFocused && styles.inputFocused]}
+                      style={[styles.input, isNameFocused && styles.inputFocused, errors.fullName && styles.inputError]}
                       mode="outlined"
-                      left={<TextInput.Icon icon={() => <Icon name="person" size={20} color={isNameFocused ? COLORS.secondary : COLORS.textSecondary} />} />}
+                      left={<TextInput.Icon icon={() => <Icon name="person" size={20} color={isNameFocused ? COLORS.primary : COLORS.textSecondary} />} />}
                       accessibilityLabel="Full name input"
                       accessibilityHint="Enter your complete name"
                       theme={{
                         colors: {
-                          primary: COLORS.secondary,
-                          background: COLORS.backgroundSecondary,
+                          primary: COLORS.primary,
+                          background: errors.fullName ? COLORS.errorLight : COLORS.backgroundSecondary,
                         },
                       }}
                     />
+                    {errors.fullName && <Text style={styles.errorText}>{errors.fullName}</Text>}
                   </View>
 
                   {/* Phone Number */}
@@ -209,25 +249,31 @@ const RegisterScreen: React.FC = () => {
                     <Text style={[styles.inputLabel, isPhoneFocused && styles.inputLabelFocused]}>Phone Number</Text>
                     <TextInput
                       value={formData.phone}
-                      onChangeText={(text) => setFormData((prev) => ({ ...prev, phone: text }))}
+                      onChangeText={(text) => {
+                        setFormData((prev) => ({ ...prev, phone: text }));
+                        if (errors.phone) {
+                          setErrors(prev => ({ ...prev, phone: undefined }));
+                        }
+                      }}
                       onFocus={() => setIsPhoneFocused(true)}
                       onBlur={() => setIsPhoneFocused(false)}
                       placeholder="Enter phone number"
                       placeholderTextColor={COLORS.textMuted}
                       keyboardType="phone-pad"
                       autoComplete="tel"
-                      style={[styles.input, isPhoneFocused && styles.inputFocused]}
+                      style={[styles.input, isPhoneFocused && styles.inputFocused, errors.phone && styles.inputError]}
                       mode="outlined"
-                      left={<TextInput.Icon icon={() => <Icon name="phone" size={20} color={isPhoneFocused ? COLORS.secondary : COLORS.textSecondary} />} />}
+                      left={<TextInput.Icon icon={() => <Icon name="phone" size={20} color={isPhoneFocused ? COLORS.primary : COLORS.textSecondary} />} />}
                       accessibilityLabel="Phone number input"
                       accessibilityHint="Enter your mobile number"
                       theme={{
                         colors: {
-                          primary: COLORS.secondary,
-                          background: COLORS.backgroundSecondary,
+                          primary: COLORS.primary,
+                          background: errors.phone ? COLORS.errorLight : COLORS.backgroundSecondary,
                         },
                       }}
                     />
+                    {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
                   </View>
 
                   {/* Service Type Selection */}
@@ -246,14 +292,14 @@ const RegisterScreen: React.FC = () => {
                     >
                       <View style={styles.radioContainer}>
                         <View style={styles.radioOption}>
-                          <RadioButton value={USER_ROLES.DRIVER} color={COLORS.secondary} />
+                          <RadioButton value={USER_ROLES.DRIVER} color={COLORS.primary} />
                           <View style={styles.radioContent}>
                             <Text style={styles.radioTitle}>Driver</Text>
                           </View>
                         </View>
 
                         <View style={styles.radioOption}>
-                          <RadioButton value={USER_ROLES.VALET_SUPERVISOR} color={COLORS.secondary} />
+                          <RadioButton value={USER_ROLES.VALET_SUPERVISOR} color={COLORS.primary} />
                           <View style={styles.radioContent}>
                             <Text style={styles.radioTitle}>Valet Supervisor</Text>
                           </View>
@@ -277,24 +323,30 @@ const RegisterScreen: React.FC = () => {
                       <Text style={[styles.inputLabel, isLicenseFocused && styles.inputLabelFocused]}>Driver License Number</Text>
                       <TextInput
                         value={formData.licenseNumber}
-                        onChangeText={(text) => setFormData((prev) => ({ ...prev, licenseNumber: text }))}
+                        onChangeText={(text) => {
+                          setFormData((prev) => ({ ...prev, licenseNumber: text.toUpperCase() }));
+                          if (errors.licenseNumber) {
+                            setErrors(prev => ({ ...prev, licenseNumber: undefined }));
+                          }
+                        }}
                         onFocus={() => setIsLicenseFocused(true)}
                         onBlur={() => setIsLicenseFocused(false)}
                         placeholder="Enter license number"
                         placeholderTextColor={COLORS.textMuted}
                         autoCapitalize="characters"
-                        style={[styles.input, isLicenseFocused && styles.inputFocused]}
+                        style={[styles.input, isLicenseFocused && styles.inputFocused, errors.licenseNumber && styles.inputError]}
                         mode="outlined"
-                        left={<TextInput.Icon icon={() => <Icon name="assignment" size={20} color={isLicenseFocused ? COLORS.secondary : COLORS.textSecondary} />} />}
+                        left={<TextInput.Icon icon={() => <Icon name="assignment" size={20} color={isLicenseFocused ? COLORS.primary : COLORS.textSecondary} />} />}
                         accessibilityLabel="Driver license input"
                         accessibilityHint="Enter your driver's license number"
                         theme={{
                           colors: {
-                            primary: COLORS.secondary,
-                            background: COLORS.backgroundSecondary,
+                            primary: COLORS.primary,
+                            background: errors.licenseNumber ? COLORS.errorLight : COLORS.backgroundSecondary,
                           },
                         }}
                       />
+                      {errors.licenseNumber && <Text style={styles.errorText}>{errors.licenseNumber}</Text>}
                     </Animated.View>
                   )}
 
@@ -347,7 +399,7 @@ const RegisterScreen: React.FC = () => {
                 <Text style={styles.loginText}>Already have an account? </Text>
                 <AccessibleButton
                   title="Sign In"
-                  onPress={() => navigation.navigate('Login')}
+                  onPress={() => navigation.pop()}
                   variant="outline"
                   size="small"
                   accessibilityLabel="Sign in button"
@@ -450,7 +502,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xs,
   },
   inputContainerFocused: {
-    backgroundColor: COLORS.secondary + '10',
+    backgroundColor: COLORS.primary + '10',
     borderRadius: BORDER_RADIUS.lg,
   },
   inputLabel: {
@@ -460,7 +512,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   inputLabelFocused: {
-    color: COLORS.secondary,
+    color: COLORS.primary,
     fontWeight: '700',
   },
   input: {
@@ -468,7 +520,11 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
   },
   inputFocused: {
-    borderColor: COLORS.secondary,
+    borderColor: COLORS.primary,
+    borderWidth: 2,
+  },
+  inputError: {
+    borderColor: COLORS.error,
     borderWidth: 2,
   },
   section: {
@@ -552,6 +608,12 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 14,
     fontWeight: '600',
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: 12,
+    marginTop: SPACING.xs,
+    fontWeight: '500',
   },
 });
 

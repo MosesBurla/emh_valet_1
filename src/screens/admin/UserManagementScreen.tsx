@@ -5,14 +5,13 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  Alert,
   SafeAreaView,
   TouchableOpacity,
   Modal,
   TextInput,
   StatusBar,
 } from 'react-native';
-import { Card, Button, Portal, Chip } from 'react-native-paper';
+import { Card, Button, Portal, Chip, Snackbar } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -42,6 +41,11 @@ const UserManagementScreen: React.FC = () => {
     email: '',
     phone: '',
   });
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState<'error' | 'success'>('success');
+  const [confirmRejectVisible, setConfirmRejectVisible] = useState(false);
+  const [confirmRejectUserId, setConfirmRejectUserId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -59,11 +63,11 @@ const UserManagementScreen: React.FC = () => {
         setUsers(result.data);
       } else {
         console.error('Failed to load users:', result.message);
-        Alert.alert('Error', result.message || 'Failed to load users');
+        showSnackbar(result.message || 'Failed to load users', 'error');
         setUsers([]);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to load users');
+      showSnackbar('Failed to load users', 'error');
       setUsers([]);
     } finally {
       setLoading(false);
@@ -76,12 +80,12 @@ const UserManagementScreen: React.FC = () => {
       if (result.success && result.data && Array.isArray(result.data)) {
         setPendingUsers(result.data);
       } else {
-        console.error('Failed to load pending users:', result.message);
-        Alert.alert('Error', result.message || 'Failed to load pending users');
+        console.error('Failed to load users:', result.message);
+        showSnackbar(result.message || 'Failed to load pending users', 'error');
         setPendingUsers([]);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to load pending users');
+      showSnackbar('Failed to load pending users', 'error');
       setPendingUsers([]);
     }
   };
@@ -90,43 +94,19 @@ const UserManagementScreen: React.FC = () => {
     try {
       const result = await apiService.approveUser(userId, role);
       if (result.success) {
-        Alert.alert('Success', result.message || 'User approved successfully');
+        showSnackbar(result.message || 'User approved successfully', 'success');
         await loadData();
       } else {
         console.error('Failed to approve user:', result.message);
-        Alert.alert('Error', result.message || 'Failed to approve user');
+        showSnackbar(result.message || 'Failed to approve user', 'error');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to approve user');
+      showSnackbar('Failed to approve user', 'error');
     }
   };
 
   const handleRejectUser = async (userId: string) => {
-    Alert.alert(
-      'Confirm Rejection',
-      'Are you sure you want to reject this user?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reject',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const result = await apiService.rejectUser(userId);
-              if (result.success) {
-                Alert.alert('Success', result.message || 'User rejected successfully');
-                await loadPendingUsers();
-              } else {
-                console.error('Failed to reject user:', result.message);
-                Alert.alert('Error', result.message || 'Failed to reject user');
-              }
-            } catch (error) {
-              Alert.alert('Error', 'Failed to reject user');
-            }
-          },
-        },
-      ]
-    );
+    showConfirmReject(userId);
   };
 
   const handleEditUser = async () => {
@@ -135,16 +115,16 @@ const UserManagementScreen: React.FC = () => {
     try {
       const result = await apiService.editUser(selectedUser._id, editForm);
       if (result.success) {
-        Alert.alert('Success', result.message || 'User updated successfully');
+        showSnackbar(result.message || 'User updated successfully', 'success');
         setShowEditModal(false);
         setSelectedUser(null);
         await loadUsers();
       } else {
         console.error('Failed to update user:', result.message);
-        Alert.alert('Error', result.message || 'Failed to update user');
+        showSnackbar(result.message || 'Failed to update user', 'error');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update user');
+      showSnackbar('Failed to update user', 'error');
     }
   };
 
@@ -164,16 +144,16 @@ const UserManagementScreen: React.FC = () => {
     try {
       const result = await apiService.editUser(selectedUser._id, { role: newRole });
       if (result.success) {
-        Alert.alert('Success', result.message || 'User role updated successfully');
+        showSnackbar(result.message || 'User role updated successfully', 'success');
         setShowRoleModal(false);
         setSelectedUser(null);
         await loadUsers();
       } else {
         console.error('Failed to update user role:', result.message);
-        Alert.alert('Error', result.message || 'Failed to update user role');
+        showSnackbar(result.message || 'Failed to update user role', 'error');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update user role');
+      showSnackbar('Failed to update user role', 'error');
     }
   };
 
@@ -181,6 +161,41 @@ const UserManagementScreen: React.FC = () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
+  };
+
+  const showSnackbar = (message: string, type: 'error' | 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarType(type);
+    setSnackbarVisible(true);
+  };
+
+  const showConfirmReject = (userId: string) => {
+    setConfirmRejectUserId(userId);
+    setConfirmRejectVisible(true);
+  };
+
+  const hideConfirmReject = () => {
+    setConfirmRejectVisible(false);
+    setConfirmRejectUserId(null);
+  };
+
+  const confirmReject = async () => {
+    if (!confirmRejectUserId) return;
+
+    hideConfirmReject();
+
+    try {
+      const result = await apiService.rejectUser(confirmRejectUserId);
+      if (result.success) {
+        showSnackbar(result.message || 'User rejected successfully', 'success');
+        await loadPendingUsers();
+      } else {
+        console.error('Failed to reject user:', result.message);
+        showSnackbar(result.message || 'Failed to reject user', 'error');
+      }
+    } catch (error) {
+      showSnackbar('Failed to reject user', 'error');
+    }
   };
 
   const getRoleColor = (role: string) => {
@@ -464,6 +479,58 @@ const UserManagementScreen: React.FC = () => {
           </View>
         </Modal>
       </Portal>
+
+      {/* Reject Confirmation Modal */}
+      <Portal>
+        <Modal
+          visible={confirmRejectVisible}
+          onDismiss={hideConfirmReject}
+          transparent={true}
+          animationType="fade"
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modal}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Confirm Rejection</Text>
+                <TouchableOpacity onPress={hideConfirmReject}>
+                  <Icon name="close" size={24} color="#757575" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.confirmMessage}>
+                Are you sure you want to reject this user? This action cannot be undone.
+              </Text>
+
+              <View style={styles.modalActions}>
+                <Button
+                  mode="outlined"
+                  onPress={hideConfirmReject}
+                  style={styles.cancelButton}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={confirmReject}
+                  style={styles.rejectConfirmButton}
+                >
+                  Reject User
+                </Button>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </Portal>
+
+      {/* Snackbar */}
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+        style={{ backgroundColor: snackbarType === 'success' ? '#4CAF50' : '#F44336' }}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </SafeAreaView>
   );
 };
@@ -723,6 +790,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#212121',
     backgroundColor: '#FFFFFF',
+  },
+  confirmMessage: {
+    fontSize: 16,
+    color: '#212121',
+    textAlign: 'center',
+    marginBottom: SPACING.lg,
+  },
+  rejectConfirmButton: {
+    backgroundColor: '#F44336',
   },
 });
 

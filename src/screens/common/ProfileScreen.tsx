@@ -8,9 +8,10 @@ import {
   Alert,
   SafeAreaView,
   TouchableOpacity,
+  Modal,
   StatusBar,
 } from 'react-native';
-import { Surface, Chip } from 'react-native-paper';
+import { Surface, Chip, Snackbar } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -55,6 +56,10 @@ const ProfileScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState<'error' | 'success'>('success');
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
   useEffect(() => {
     loadUserProfile();
@@ -69,47 +74,22 @@ const ProfileScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
-      Alert.alert('Error', 'Failed to load profile');
+      showSnackbar('Failed to load profile', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-              await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
-              // Navigation will be handled by App.tsx when it detects no auth
-              Alert.alert('Logged Out', 'You have been successfully logged out');
-            } catch (error) {
-              console.error('Error during logout:', error);
-              Alert.alert('Error', 'Failed to logout');
-            }
-          }
-        }
-      ]
-    );
-  };
-
   const handleEditProfile = () => {
-    Alert.alert('Edit Profile', 'Edit profile functionality would be implemented here');
+    showSnackbar('Edit profile functionality would be implemented here', 'error');
   };
 
   const handleChangePassword = () => {
-    Alert.alert('Change Password', 'Change password functionality would be implemented here');
+    showSnackbar('Change password functionality would be implemented here', 'error');
   };
 
   const handleSettings = () => {
-    Alert.alert('Settings', 'Settings functionality would be implemented here');
+    showSnackbar('Settings functionality would be implemented here', 'error');
   };
 
   const handleRefresh = async () => {
@@ -136,6 +116,29 @@ const ProfileScreen: React.FC = () => {
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
+  };
+
+  const showSnackbar = (message: string, type: 'error' | 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarType(type);
+    setSnackbarVisible(true);
+  };
+
+  const handleLogout = async () => {
+    setLogoutModalVisible(true);
+  };
+
+  const confirmLogout = async () => {
+    setLogoutModalVisible(false);
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      // Navigation will be handled by App.tsx when it detects no auth
+      showSnackbar('You have been successfully logged out', 'success');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      showSnackbar('Failed to logout', 'error');
+    }
   };
 
   if (loading) {
@@ -306,14 +309,63 @@ const ProfileScreen: React.FC = () => {
           </Surface>
         </View>
 
-        {/* Logout Button */}
-        <View style={styles.logoutSection}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Icon name="logout" size={20} color="#FFFFFF" style={styles.logoutIcon} />
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
+
+      {/* Logout Button */}
+      <View style={styles.logoutContainer}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Icon name="logout" size={20} color="#FFFFFF" style={styles.logoutIcon} />
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        visible={logoutModalVisible}
+        onDismiss={() => setLogoutModalVisible(false)}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Logout Confirmation</Text>
+              <TouchableOpacity onPress={() => setLogoutModalVisible(false)}>
+                <Icon name="close" size={24} color="#757575" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.confirmMessage}>
+              Are you sure you want to logout? You will need to log in again to continue using the app.
+            </Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setLogoutModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.logoutConfirmButton]}
+                onPress={confirmLogout}
+              >
+                <Text style={styles.confirmButtonText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Snackbar */}
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+        style={{ backgroundColor: snackbarType === 'success' ? '#4CAF50' : '#F44336' }}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </SafeAreaView>
   );
 };
@@ -510,13 +562,13 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
   },
-  logoutSection: {
-    marginTop: SPACING.md,
+  logoutContainer: {
+    backgroundColor: '#f8fafc',
+    padding: SPACING.md,
   },
   logoutButton: {
     flexDirection: 'row',
     backgroundColor: COLORS.error,
-    marginHorizontal: SPACING.md,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     elevation: 2,
@@ -541,6 +593,65 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.error,
     marginTop: SPACING.md,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modal: {
+    backgroundColor: '#FFFFFF',
+    margin: SPACING.lg,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.xl,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#212121',
+  },
+  confirmMessage: {
+    fontSize: 16,
+    color: '#212121',
+    textAlign: 'center',
+    marginBottom: SPACING.lg,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: SPACING.md,
+  },
+  modalButton: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+  },
+  cancelButtonText: {
+    color: '#757575',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  logoutConfirmButton: {
+    backgroundColor: COLORS.error,
+  },
+  confirmButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

@@ -23,7 +23,7 @@ import SocketService from '../../services/SocketService';
 import { ParkingRequest } from '../../types';
 import { COLORS, SPACING, BORDER_RADIUS, USER_ROLES, STORAGE_KEYS } from '../../constants';
 import { apiService } from '../../services/ApiService';
-import { locationService } from '../../services/LocationService';
+import { getCurrentLocation, locationService } from '../../services/LocationService';
 
 type RootStackParamList = {
   DriverDashboard: undefined;
@@ -68,7 +68,7 @@ const DriverDashboard: React.FC = () => {
   const verifyParkingLocation = async (): Promise<boolean> => {
     try {
       // Get driver's current location
-      const driverLocation = await locationService.getCurrentLocation();
+      const driverLocation = await getCurrentLocation();
 
       if (!driverLocation) {
         Alert.alert('Location Required', 'Unable to get your current location. Please enable location services and try again.');
@@ -93,9 +93,27 @@ const DriverDashboard: React.FC = () => {
       }
 
       return true; // Driver is at parking location
-    } catch (error) {
+    } catch (error: any) {
       console.error('Location verification error:', error);
-      Alert.alert('Location Error', 'Failed to verify your location. Please try again.');
+      let errorMessage = 'Failed to verify your location. Please try again.';
+
+      if (error && error.code) {
+        switch (error.code) {
+          case 1: // PERMISSION_DENIED
+            errorMessage = 'Location permission denied. Please enable location permissions in your device settings and try again.';
+            break;
+          case 2: // POSITION_UNAVAILABLE
+            errorMessage = 'Location unavailable. Please check your GPS settings and ensure you have a signal.';
+            break;
+          case 3: // TIMEOUT
+            errorMessage = 'Location request timed out. Please ensure you have a clear view of the sky and try again.';
+            break;
+          default:
+            errorMessage = 'Unable to determine your location. Please check your location settings and try again.';
+        }
+      }
+
+      Alert.alert('Location Error', errorMessage);
       return false;
     }
   };
@@ -193,10 +211,31 @@ const DriverDashboard: React.FC = () => {
           return;
         }
 
-        // Get driver's current location
-        const driverLocation = await locationService.getCurrentLocation();
-        if (!driverLocation) {
-          Alert.alert('Location Required', 'Unable to get your current location. Please enable location services and try again.');
+        let driverLocation;
+        try {
+          // Get driver's current location
+          driverLocation = await locationService.getCurrentLocation();
+        } catch (error: any) {
+          console.error('Location error:', error);
+          let errorMessage = 'Unable to get your current location. Please enable location services and try again.';
+
+          if (error && error.code) {
+            switch (error.code) {
+              case 1: // PERMISSION_DENIED
+                errorMessage = 'Location permission denied. Please enable location permissions in your device settings and try again.';
+                break;
+              case 2: // POSITION_UNAVAILABLE
+                errorMessage = 'Location unavailable. Please check your GPS settings and ensure you have a signal.';
+                break;
+              case 3: // TIMEOUT
+                errorMessage = 'Location request timed out. Please ensure you have a clear view of the sky and try again.';
+                break;
+              default:
+                errorMessage = 'Unable to determine your location. Please check your location settings and try again.';
+            }
+          }
+
+          Alert.alert('Location Required', errorMessage);
           return;
         }
 
@@ -335,12 +374,12 @@ const DriverDashboard: React.FC = () => {
               <Text style={styles.headerSubtitle}>Ready to handle requests</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.headerAction}>
+          {/* <TouchableOpacity style={styles.headerAction}>
             <Icon name="notifications-outline" size={24} color="#FFFFFF" />
             {requests.length > 0 && (
               <View style={styles.notificationDot} />
             )}
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
@@ -385,10 +424,10 @@ const DriverDashboard: React.FC = () => {
                   <View style={styles.activityContent}>
                     <Text style={styles.activityTitle}>{item.licensePlate}</Text>
                     <Text style={styles.activitySubtitle}>
-                      {item.ownerName} • {item.vehicleMake && `${item.vehicleMake} ${item.vehicleModel}`} ({item.vehicleColor}) • {item.type}
+                      {item.ownerName} • {item.vehicleMake && `${item.vehicleMake} ${item.vehicleModel}`} • {item.type}
                     </Text>
                     <Text style={styles.activityTime}>
-                      Estimated: {item.estimatedTime} mins • {item.location}
+                      Estimated: {item.estimatedTime} mins
                     </Text>
                   </View>
                   {item.status === 'accepted' ? (
@@ -452,6 +491,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   activityIcon: {
     width: 40,
@@ -625,6 +665,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     backgroundColor: '#FFFFFF',
     elevation: 2,
+    paddingHorizontal: SPACING.md,
   },
   emptyStateCard: {
     borderRadius: BORDER_RADIUS.lg,
