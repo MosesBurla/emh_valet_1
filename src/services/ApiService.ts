@@ -91,8 +91,8 @@ class ApiService {
 
   constructor() {
     // Use environment variable or default to localhost
-     //this.baseURL = 'https://emh-valet-service-1.onrender.com/api';
-    this.baseURL = 'http://192.168.1.4:3000/api';
+     this.baseURL = 'https://emh-valet-service-1.onrender.com/api';
+    //this.baseURL = 'http://192.168.1.4:3000/api';
   }
 
   private async getAuthHeaders(): Promise<{ [key: string]: string }> {

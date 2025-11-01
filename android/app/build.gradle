@@ -77,7 +77,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.lwc"
+    namespace "com.emmanuelministrieshyd.parking"
 
     // Force AndroidX usage and resolve conflicts
     configurations.all {
@@ -88,7 +88,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.lwc"
+        applicationId "com.emmanuelministrieshyd.parking"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

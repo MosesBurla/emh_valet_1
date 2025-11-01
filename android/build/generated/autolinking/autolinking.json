@@ -855,8 +855,8 @@
     "android": {
       "sourceDir": "/Users/annemoses/Documents/Moses/projects/emh_valet_1/android",
       "appName": "app",
-      "packageName": "com.lwc",
-      "applicationId": "com.lwc",
+      "packageName": "com.emmanuelministrieshyd.parking",
+      "applicationId": "com.emmanuelministrieshyd.parking",
       "mainActivity": ".MainActivity",
       "assets": []
     }

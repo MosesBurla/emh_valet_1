@@ -9,8 +9,8 @@ class SocketService {
 
   connect(userId: string, userRole: string) {
     // Use environment variable for server URL
-    //const SERVER_URL = 'https://emh-valet-service-1.onrender.com';
-const SERVER_URL = 'http://192.168.1.4:3000';
+    const SERVER_URL = 'https://emh-valet-service-1.onrender.com';
+//const SERVER_URL = 'http://192.168.1.4:3000';
     this.connectionStatus = 'connecting';
     this.socket = io(SERVER_URL, {
       auth: {

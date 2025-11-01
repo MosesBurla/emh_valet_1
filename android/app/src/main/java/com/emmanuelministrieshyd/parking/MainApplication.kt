@@ -1,4 +1,4 @@
-package com.lwc
+package com.emmanuelministrieshyd.parking
 
 import android.app.Application
 import android.content.Context
@@ -11,7 +11,7 @@ import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
-import com.lwc.LocationPackage
+import com.emmanuelministrieshyd.parking.LocationPackage
 
 class MainApplication : Application(), ReactApplication {
 
