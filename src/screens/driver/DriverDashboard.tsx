@@ -9,6 +9,8 @@ import {
   SafeAreaView,
   TouchableOpacity,
   StatusBar,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { Surface, Card } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -122,29 +124,55 @@ const DriverDashboard: React.FC = () => {
     loadRequests();
     setupSocketListeners();
 
+    // App state listener to handle background/foreground transitions
+    const appStateSubscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      console.log('App state changed to:', nextAppState);
+
+      if (nextAppState === 'active') {
+        // App came to foreground - ensure socket is connected
+        if (!SocketService.isConnected()) {
+          console.log('Attempting to reconnect socket on app foreground');
+          SocketService.reconnect();
+        } else {
+          console.log('Socket already connected on app foreground');
+        }
+      }
+    });
+
     return () => {
-      SocketService.off('new_request');
+      SocketService.off('new-park-request');
+      SocketService.off('new-pickup-request');
       SocketService.off('request_updated');
+      SocketService.off('request-accepted');
+      appStateSubscription.remove();
     };
   }, []);
 
   const setupSocketListeners = () => {
-    SocketService.on('new_request', (request: ParkingRequest) => {
-      setRequests(prev => [request, ...prev]);
-      console.log('New request received:', request);
-    });
-
-    SocketService.on('request_updated', (updatedRequest: ParkingRequest) => {
-      setRequests(prev =>
-        prev.map(req => req.id === updatedRequest.id ? updatedRequest : req)
+    // Listen for new park requests from backend - show notification/alert only
+    SocketService.on('new-park-request', (data: any) => {
+      console.log('New park request notification:', data);
+      Alert.alert(
+        'New Parking Request',
+        `New parking request received for vehicle ${data.vehicle.number || 'Unknown'}`,
+        [
+          { text: 'OK' },
+          { text: 'View', onPress: () => onRefresh() }
+        ]
       );
     });
 
-    SocketService.on('request_accepted', (data: { requestId: string, driverName: string }) => {
-      setRequests(prev =>
-        prev.filter(req => req.id !== data.requestId)
+    // Listen for new pickup requests from backend - show notification/alert only
+    SocketService.on('new-pickup-request', (data: any) => {
+      console.log('New pickup request notification:', data);
+      Alert.alert(
+        'New Pickup Request',
+        `New pickup request received for vehicle ${data.vehicle.number || 'Unknown'}`,
+        [
+          { text: 'OK' },
+          { text: 'View', onPress: () => onRefresh() }
+        ]
       );
-      console.log('Request accepted:', data);
     });
   };
 

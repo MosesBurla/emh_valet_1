@@ -4,12 +4,14 @@ import { API_ENDPOINTS } from '../constants';
 
 class SocketService {
   private socket: Socket | null = null;
+  private connectionStatus: 'disconnected' | 'connecting' | 'connected' = 'disconnected';
   private listeners: Map<string, Function[]> = new Map();
 
   connect(userId: string, userRole: string) {
     // Use environment variable for server URL
-    const SERVER_URL = 'https://emh-valet-service-1.onrender.com';
-
+    //const SERVER_URL = 'https://emh-valet-service-1.onrender.com';
+const SERVER_URL = 'http://192.168.1.4:3000';
+    this.connectionStatus = 'connecting';
     this.socket = io(SERVER_URL, {
       auth: {
         userId,
@@ -19,13 +21,18 @@ class SocketService {
       timeout: 20000, // 20 second timeout
       forceNew: true,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity, // Keep trying forever
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      // Keep socket alive even when app is in background
+      autoConnect: true,
+      // Reconnect on app focus or foreground
+      multiplex: false,
     });
 
     this.socket.on('connect', () => {
       console.log('Connected to socket server');
+      this.connectionStatus = 'connected';
       // Send authentication after connection
       this.socket?.emit('authenticate', { userId, role: userRole });
       this.emit('user_connected', { userId, userRole });
@@ -41,6 +48,7 @@ class SocketService {
 
     this.socket.on('disconnect', (reason) => {
       console.log('Disconnected from socket server:', reason);
+      this.connectionStatus = 'disconnected';
     });
 
     this.socket.on('connect_error', (error) => {
@@ -50,6 +58,7 @@ class SocketService {
         message: error.message,
         stack: error.stack
       });
+      this.connectionStatus = 'disconnected';
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
@@ -197,6 +206,11 @@ class SocketService {
   // Get connection status
   isConnected(): boolean {
     return this.socket?.connected || false;
+  }
+
+  // Get detailed connection status
+  getConnectionStatus(): 'disconnected' | 'connecting' | 'connected' {
+    return this.connectionStatus;
   }
 
   // Reconnect functionality

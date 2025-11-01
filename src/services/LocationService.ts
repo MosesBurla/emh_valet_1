@@ -71,7 +71,7 @@ class LocationService {
    */
   async getCurrentLocation(userOptions: LocationOptions = {}): Promise<Location> {
     const options = {
-      timeout: userOptions.timeout ?? 10000, // 10 seconds total
+      timeout: userOptions.timeout ?? 2000, // 10 seconds total
       maximumAge: userOptions.maximumAge ?? 60000, // Accept 1min old cache
       showAlertOnFail: userOptions.showAlertOnFail ?? false,
       acceptableAccuracy: userOptions.acceptableAccuracy ?? 100, // 100 meters
