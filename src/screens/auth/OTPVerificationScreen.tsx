@@ -13,10 +13,11 @@ import {
 import { TextInput, Card, ActivityIndicator } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import AccessibleButton from '../../components/AccessibleButton';
-import { COLORS, SPACING, BORDER_RADIUS } from '../../constants';
+import { COLORS, SPACING, BORDER_RADIUS, STORAGE_KEYS } from '../../constants';
 import { apiService } from '../../services/ApiService';
 
 type RootStackParamList = {
@@ -73,7 +74,9 @@ const OTPVerificationScreen: React.FC = () => {
 
     setLoading(true);
     try {
-      const result = await apiService.verifyOTP(phone, otp);
+      // Get stored FCM token
+      const fcmToken = await AsyncStorage.getItem(STORAGE_KEYS.FCM_TOKEN);
+      const result = await apiService.verifyOtp(phone, otp, fcmToken);
 
       if (result.success) {
         Alert.alert(

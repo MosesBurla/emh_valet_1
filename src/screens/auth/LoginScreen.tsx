@@ -130,8 +130,11 @@ const LoginScreen: React.FC = () => {
 
     setLoading(true);
     try {
+      // Get stored FCM token
+      const fcmToken = await AsyncStorage.getItem(STORAGE_KEYS.FCM_TOKEN);
+
       // Verify OTP with backend API
-      const result = await apiService.verifyOtp(formData.phone, formData.otp);
+      const result = await apiService.verifyOtp(formData.phone, formData.otp, fcmToken);
 
       // Check standardized API response
       if (result.success && result.data) {

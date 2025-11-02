@@ -66,6 +66,11 @@ const App: React.FC = () => {
       try {
         const fcmToken = await NotificationService.configureFirebaseMessaging();
         console.log('Firebase FCM Token obtained:', fcmToken);
+        // Store FCM token for later use
+        if (fcmToken) {
+          await AsyncStorage.setItem(STORAGE_KEYS.FCM_TOKEN, fcmToken);
+          console.log('FCM Token stored successfully');
+        }
       } catch (firebaseError) {
         console.warn('Firebase messaging initialization failed:', firebaseError);
         // Continue without Firebase messaging

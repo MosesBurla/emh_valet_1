@@ -14,6 +14,7 @@ export interface User {
   role: 'admin' | 'driver' | 'valet_supervisor' | 'parking_location_supervisor';
   photoUrl?: string;
   rating?: number;
+  fcmToken?:string;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   createdAt?: string;
   licenseDetails?: any;
@@ -229,10 +230,10 @@ class ApiService {
     });
   }
 
-  async verifyOtp(phone: string, otp: string): Promise<{ success: boolean; data: { token: string; user: User } | null; message: string; error: any; timestamp: string }> {
+  async verifyOtp(phone: string, otp: string, fcmToken?: string | null): Promise<{ success: boolean; data: { token: string; user: User } | null; message: string; error: any; timestamp: string }> {
     return this.makeRequest('/auth/verify-otp', {
       method: 'POST',
-      body: JSON.stringify({ phone, otp }),
+      body: JSON.stringify({ phone, otp, fcmToken }),
     });
   }
 

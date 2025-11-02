@@ -115,6 +115,7 @@ export const NOTIFICATION_TYPES = {
 export const STORAGE_KEYS = {
   AUTH_TOKEN: '@auth_token',
   USER_DATA: '@user_data',
+  FCM_TOKEN: '@fcm_token',
   OFFLINE_REQUESTS: '@offline_requests',
   APP_SETTINGS: '@app_settings',
 } as const;
