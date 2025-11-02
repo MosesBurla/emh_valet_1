@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { StatusBar, SafeAreaView, View, Text, StyleSheet, DeviceEventEmitter } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, Provider as PaperProvider } from 'react-native-paper';
+import { ActivityIndicator, Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { NavigationContainerRef } from '@react-navigation/native';
 
 import { NotificationService } from './services/NotificationService';
 // import { NotificationService } from './services/NotificationService';
@@ -40,11 +41,35 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const navigationRef = useRef<NavigationContainerRef<any>>(null);
 
   const initializeApp = async () => {
     try {
-      // Initialize notifications
-      // NotificationService.configure(); // Temporarily disabled due to AndroidX conflicts
+      // Configure notification service
+      NotificationService.configure();
+
+      // Request permissions
+      await NotificationService.requestPermissions();
+
+      // Register handlers
+      await NotificationService.registerFirebaseNotifications(
+        (notification) => {
+          console.log('Received notification:', notification);
+        },
+        (token) => {
+          console.log('Token received:', token);
+          // Send token to your backend
+        }
+      );
+
+      // Initialize Firebase messaging
+      try {
+        const fcmToken = await NotificationService.configureFirebaseMessaging();
+        console.log('Firebase FCM Token obtained:', fcmToken);
+      } catch (firebaseError) {
+        console.warn('Firebase messaging initialization failed:', firebaseError);
+        // Continue without Firebase messaging
+      }
 
       // Check for existing authentication
       const token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
@@ -192,6 +217,24 @@ const App: React.FC = () => {
     initializeApp();
   }, []);
 
+  // Listen for notification tap to navigate to dashboard
+  useEffect(() => {
+    const notificationTapListener = DeviceEventEmitter.addListener('notificationTap', (event) => {
+      console.log('Notification tapped, navigating to dashboard:', event);
+      if (isAuthenticated && navigationRef.current) {
+        // Reset to the MainTabs screen to show dashboard
+        navigationRef.current.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        });
+      }
+    });
+
+    return () => {
+      notificationTapListener.remove();
+    };
+  }, [isAuthenticated]);
+
   const getDashboardComponent = (userRole: string) => {
     switch (userRole) {
       case 'driver':
@@ -218,43 +261,48 @@ const App: React.FC = () => {
   }
 
   return (
-    <PaperProvider>
-      <NavigationContainer>
-        <StatusBar
-          backgroundColor={COLORS.primary}
-          barStyle="light-content"
-        />
-        <Stack.Navigator
-          screenOptions={{
-            headerShown: false,
-            cardStyle: { backgroundColor: COLORS.background }
-          }}
-        >
-          {!isAuthenticated ? (
-            // Auth Stack
-            <>
-              <Stack.Screen name="Login" component={LoginScreen} />
-              <Stack.Screen name="Register" component={RegisterScreen} />
-              <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
-              {/* <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} /> */}
-            </>
-          ) : (
-            // Main App with Tab Navigation and additional screens
-            <>
-              <Stack.Screen name="MainTabs">
-                {() => {
-                  console.log('Rendering MainTabs for user:', user?.name, 'with role:', user?.role);
-                  return user ? <RoleBasedTabNavigator user={user} /> : <DriverDashboard />;
-                }}
-              </Stack.Screen>
-              <Stack.Screen name="UserManagement" component={UserManagementScreen} />
-              <Stack.Screen name="AddVehicle" component={AddVehicleScreen} />
-              <Stack.Screen name="RequestPickup" component={RequestPickupScreen} />
-            </>
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
-    </PaperProvider>
+    <NavigationContainer ref={navigationRef}>
+      <StatusBar
+        backgroundColor={COLORS.primary}
+        barStyle="light-content"
+      />
+      {!isAuthenticated ? (
+        // Auth Stack with light theme forced
+        <PaperProvider theme={DefaultTheme}>
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              cardStyle: { backgroundColor: COLORS.background }
+            }}
+          >
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+            {/* <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} /> */}
+          </Stack.Navigator>
+        </PaperProvider>
+      ) : (
+        // Main App with adaptive theme
+        <PaperProvider>
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              cardStyle: { backgroundColor: COLORS.background }
+            }}
+          >
+            <Stack.Screen name="MainTabs">
+              {() => {
+                console.log('Rendering MainTabs for user:', user?.name, 'with role:', user?.role);
+                return user ? <RoleBasedTabNavigator user={user} /> : <DriverDashboard />;
+              }}
+            </Stack.Screen>
+            <Stack.Screen name="UserManagement" component={UserManagementScreen} />
+            <Stack.Screen name="AddVehicle" component={AddVehicleScreen} />
+            <Stack.Screen name="RequestPickup" component={RequestPickupScreen} />
+          </Stack.Navigator>
+        </PaperProvider>
+      )}
+    </NavigationContainer>
   );
 };
 

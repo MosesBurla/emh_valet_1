@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Surface, Card } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import Icon1 from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -402,12 +403,9 @@ const DriverDashboard: React.FC = () => {
               <Text style={styles.headerSubtitle}>Ready to handle requests</Text>
             </View>
           </View>
-          {/* <TouchableOpacity style={styles.headerAction}>
-            <Icon name="notifications-outline" size={24} color="#FFFFFF" />
-            {requests.length > 0 && (
-              <View style={styles.notificationDot} />
-            )}
-          </TouchableOpacity> */}
+          
+            <Icon1 name="dove" size={24} color="#FFFFFF" />
+          
         </View>
       </View>
 

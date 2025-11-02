@@ -76,7 +76,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         ]}
       >
         <View style={styles.logoContainer}>
-          <Icon name="local-parking" size={80} color={COLORS.primary} />
+          <Icon name="local-parking" size={100} color={COLORS.primary} />
         </View>
 
         <View style={styles.textContainer}>

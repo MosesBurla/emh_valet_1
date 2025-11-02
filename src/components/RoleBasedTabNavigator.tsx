@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, DeviceEventEmitter } from 'react-native';
+import { Snackbar } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { COLORS } from '../constants';
 import { User } from '../types';
@@ -26,6 +27,8 @@ const RoleBasedTabNavigator: React.FC<RoleBasedTabNavigatorProps> = ({ user }) =
   console.log('RoleBasedTabNavigator rendering for user:', user.name, 'role:', user.role);
 
   const [socketStatus, setSocketStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   useEffect(() => {
     const updateStatus = () => {
@@ -39,6 +42,17 @@ const RoleBasedTabNavigator: React.FC<RoleBasedTabNavigatorProps> = ({ user }) =
     const interval = setInterval(updateStatus, 1000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const notificationListener = DeviceEventEmitter.addListener('inAppNotification', (notification) => {
+      setSnackbarMessage(`${notification.title}: ${notification.message}`);
+      setSnackbarVisible(true);
+    });
+
+    return () => {
+      notificationListener.remove();
+    };
   }, []);
 
   const getTabIcon = (routeName: string, focused: boolean) => {
@@ -142,7 +156,17 @@ const RoleBasedTabNavigator: React.FC<RoleBasedTabNavigatorProps> = ({ user }) =
           </>
         )}
       </Tab.Navigator>
-      <ConnectionStatusHeader />
+      {/* <ConnectionStatusHeader /> */}
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+        action={{
+          label: 'Dismiss',
+          onPress: () => setSnackbarVisible(false),
+        }}>
+        {snackbarMessage}
+      </Snackbar>
     </View>
   );
 };

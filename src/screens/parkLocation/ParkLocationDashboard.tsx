@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Card, Surface } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import Icon1 from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -156,9 +157,7 @@ const ParkLocationDashboard: React.FC = () => {
               <Text style={styles.headerSubtitle}>Manage parking operations</Text>
             </View>
           </View>
-          {/* <TouchableOpacity style={styles.headerAction} onPress={handleLogout}>
-            <Icon name="logout" size={24} color="#FFFFFF" />
-          </TouchableOpacity> */}
+          <Icon1 name="dove" size={24} color="#FFFFFF" />
         </View>
       </View>
 

@@ -1,171 +1,111 @@
-import PushNotification, { PushNotification as PN } from 'react-native-push-notification';
 import { Platform } from 'react-native';
-import { NotificationData } from '../types';
-import { NOTIFICATION_TYPES } from '../constants';
+import messaging from '@react-native-firebase/messaging';
+import { FIREBASE_INITIALIZED } from '../config/firebase';
 
 export class NotificationService {
-  private static channelId = 'valet-parking-channel';
   private static isConfigured = false;
 
   static configure() {
     if (this.isConfigured) return;
-
-    PushNotification.configure({
-      onNotification: function (notification: PN) {
-        console.log('Notification received:', notification);
-        notification.finish();
-      },
-      onRegister: function (token) {
-        console.log('Push notification token:', token);
-      },
-      requestPermissions: Platform.OS === 'ios',
-    });
-
-    // Create notification channel for Android
-    if (Platform.OS === 'android') {
-      PushNotification.createChannel(
-        {
-          channelId: this.channelId,
-          channelName: 'Valet Parking Notifications',
-          channelDescription: 'Notifications for valet parking requests and updates',
-          playSound: true,
-          soundName: 'default',
-          importance: 4,
-          vibrate: true,
-        },
-        (created) => console.log(`Notification channel created: ${created}`)
-      );
-    }
-
-    // Handle background notifications
-    PushNotification.popInitialNotification((notification) => {
-      console.log('Initial notification:', notification);
-    });
-
     this.isConfigured = true;
+    console.log('Firebase messaging configured (minimal setup)');
   }
 
-  static showLocalNotification(
-    title: string,
-    message: string,
-    data?: any,
-    priority: 'default' | 'high' | 'low' = 'default'
+  // Firebase messaging methods - minimal setup
+  static async configureFirebaseMessaging() {
+    try {
+      // Ensure Firebase is initialized
+      if (!FIREBASE_INITIALIZED) {
+        throw new Error('Firebase is not initialized. Check your Firebase configuration.');
+      }
+
+      // Request permission for notifications
+      const authStatus = await messaging().requestPermission();
+      console.log('Authorization status:', authStatus);
+
+      // Get FCM token
+      const fcmToken = await messaging().getToken();
+      console.log('FCM Token:', fcmToken);
+      return fcmToken;
+    } catch (error) {
+      console.error('Firebase messaging configuration failed:', error);
+      throw error;
+    }
+  }
+
+  static async registerFirebaseNotifications(
+    onNotification: (notification: any) => void,
+    onTokenReceived?: (token: string) => void
   ) {
-    PushNotification.localNotification({
-      channelId: this.channelId,
-      title,
-      message,
-      playSound: true,
-      soundName: 'default',
-      userInfo: data || {},
-      priority: priority,
-      importance: priority === 'high' ? 'high' : 'default',
-      vibrate: priority === 'high',
-      onlyAlertOnce: false,
-      smallIcon: 'ic_notification',
-      largeIcon: 'ic_launcher',
-    });
+    try {
+      // Handle foreground messages - just pass to callback
+      const unsubscribeForeground = messaging().onMessage((remoteMessage) => {
+        console.log('Foreground message received:', remoteMessage);
+        onNotification(remoteMessage);
+      });
+
+      // Handle notification opened from background state
+      const unsubscribeOpenedApp = messaging().onNotificationOpenedApp((remoteMessage) => {
+        console.log('Notification caused app to open from background state:', remoteMessage);
+        onNotification(remoteMessage);
+      });
+
+      // Handle notification opened from quit state
+      messaging().getInitialNotification().then((remoteMessage) => {
+        if (remoteMessage) {
+          console.log('Notification caused app to open from quit state:', remoteMessage);
+          onNotification(remoteMessage);
+        }
+      });
+
+      // Handle token refresh
+      const unsubscribeToken = messaging().onTokenRefresh((token) => {
+        console.log('Token refreshed:', token);
+        if (onTokenReceived) {
+          onTokenReceived(token);
+        }
+      });
+
+      return () => {
+        unsubscribeForeground();
+        unsubscribeOpenedApp();
+        unsubscribeToken();
+      };
+    } catch (error) {
+      console.error('Firebase messaging registration failed:', error);
+      throw error;
+    }
   }
 
-  static showRequestNotification(request: any) {
-    const title = 'New Parking Request';
-    const message = `${request.type} request at ${request.location} for ${request.licensePlate}`;
-
-    this.showLocalNotification(title, message, {
-      type: NOTIFICATION_TYPES.NEW_REQUEST,
-      requestId: request.id,
-    }, 'high');
-  }
-
-  static showRequestAcceptedNotification(requestId: string, driverName: string) {
-    const title = 'Request Accepted';
-    const message = `${driverName} has accepted your request`;
-
-    this.showLocalNotification(title, message, {
-      type: NOTIFICATION_TYPES.REQUEST_ACCEPTED,
-      requestId,
-    });
-  }
-
-  static showRequestCompletedNotification(requestId: string) {
-    const title = 'Request Completed';
-    const message = 'Your parking request has been completed';
-
-    this.showLocalNotification(title, message, {
-      type: NOTIFICATION_TYPES.REQUEST_COMPLETED,
-      requestId,
-    });
-  }
-
-  static scheduleNotification(
-    title: string,
-    message: string,
-    date: Date,
-    data?: any
-  ) {
-    PushNotification.localNotificationSchedule({
-      channelId: this.channelId,
-      title,
-      message,
-      date,
-      userInfo: data || {},
-      allowWhileIdle: true,
-    });
-  }
-
-  static cancelNotification(notificationId: string) {
-    PushNotification.cancelLocalNotification(notificationId);
-  }
-
-  static cancelAllNotifications() {
-    PushNotification.cancelAllLocalNotifications();
-  }
-
-  static getScheduledNotifications(callback: (notifications: any[]) => void) {
-    PushNotification.getScheduledLocalNotifications(callback);
-  }
-
-  // In-app notification management
-  static showInAppNotification(
-    title: string,
-    message: string,
-    type: 'success' | 'error' | 'warning' | 'info' = 'info',
-    duration: number = 3000
-  ) {
-    // This would integrate with a toast/snackbar library
-    // For now, we'll use console logging
-    console.log(`[${type.toUpperCase()}] ${title}: ${message}`);
-
-    // In a real implementation, you might use:
-    // Toast.show({ type, text1: title, text2: message, visibilityTime: duration });
-  }
-
-  // Permission handling
+  // Permission handling - minimal
   static async requestPermissions(): Promise<boolean> {
-    return new Promise((resolve) => {
-      PushNotification.requestPermissions().then((result) => {
-        resolve(result.alert || false);
-      }).catch(() => {
-        resolve(false);
-      });
-    });
+    try {
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      return enabled;
+    } catch (error) {
+      console.error('Failed to request notification permissions:', error);
+      return false;
+    }
   }
 
-  static async checkPermissions(): Promise<{ alert: boolean, badge: boolean, sound: boolean }> {
-    return new Promise((resolve) => {
-      PushNotification.checkPermissions((result) => {
-        resolve(result);
-      });
-    });
-  }
-
-  // Background notification handling
-  static setBackgroundNotificationHandler(handler: (notification: any) => void) {
-    PushNotification.configure({
-      onNotification: function (notification) {
-        handler(notification);
-        notification.finish();
-      },
-    });
+  static async getCurrentToken(): Promise<string | null> {
+    try {
+      const token = await messaging().getToken();
+      return token;
+    } catch (error) {
+      console.error('Failed to get current token:', error);
+      return null;
+    }
   }
 }
+
+// Export minimal background handler
+export const registerBackgroundMessageHandler = () => {
+  messaging().setBackgroundMessageHandler(async remoteMessage => {
+    console.log('Background message received:', remoteMessage);
+    // Minimal handling - let Firebase handle display automatically
+  });
+};

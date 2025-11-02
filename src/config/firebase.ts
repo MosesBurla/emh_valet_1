@@ -1,4 +1,3 @@
-// Firebase has been removed from the frontend
-// Using backend phone verification instead
-
-export const FIREBASE_REMOVED = true;
+// React Native Firebase automatically initializes Firebase using google-services.json
+// No manual initialization needed
+export const FIREBASE_INITIALIZED = true;

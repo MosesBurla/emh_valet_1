@@ -1,0 +1,165 @@
+{
+  "project_info": {
+    "project_number": "248998767104",
+    "firebase_url": "https://your-wish-c9e3a.firebaseio.com",
+    "project_id": "your-wish-c9e3a",
+    "storage_bucket": "your-wish-c9e3a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:248998767104:android:19a2803946fbb9d89446e5",
+        "android_client_info": {
+          "package_name": "com.asdf.adsf"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "248998767104-p06q9kaj7o4jajb57kirhc45uacfv9r5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2Ot8Wjw_eQMXbYhlmJ821gYN_Bm0YL7c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "248998767104-p06q9kaj7o4jajb57kirhc45uacfv9r5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:248998767104:android:4cff3da740836e1d9446e5",
+        "android_client_info": {
+          "package_name": "com.emmanuelministrieshyd.parking"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "248998767104-p06q9kaj7o4jajb57kirhc45uacfv9r5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2Ot8Wjw_eQMXbYhlmJ821gYN_Bm0YL7c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "248998767104-p06q9kaj7o4jajb57kirhc45uacfv9r5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:248998767104:android:801a9f903b71e0ab9446e5",
+        "android_client_info": {
+          "package_name": "com.mb.chat_bot"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "248998767104-s357js2evvrm9ta9p0j7kovq6bo7jokt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mb.chat_bot",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "248998767104-p06q9kaj7o4jajb57kirhc45uacfv9r5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2Ot8Wjw_eQMXbYhlmJ821gYN_Bm0YL7c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "248998767104-p06q9kaj7o4jajb57kirhc45uacfv9r5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:248998767104:android:5cd3fa880270a6999446e5",
+        "android_client_info": {
+          "package_name": "com.telugubible"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "248998767104-p06q9kaj7o4jajb57kirhc45uacfv9r5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2Ot8Wjw_eQMXbYhlmJ821gYN_Bm0YL7c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "248998767104-p06q9kaj7o4jajb57kirhc45uacfv9r5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:248998767104:android:c172a7b7644f05c49446e5",
+        "android_client_info": {
+          "package_name": "com.toptech.thebible"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "248998767104-p06q9kaj7o4jajb57kirhc45uacfv9r5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2Ot8Wjw_eQMXbYhlmJ821gYN_Bm0YL7c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "248998767104-p06q9kaj7o4jajb57kirhc45uacfv9r5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-9630824936597350~6307928523"
+    }
+  ],
+  "configuration_version": "1"
+}

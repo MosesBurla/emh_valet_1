@@ -162,7 +162,7 @@ const RegisterScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.secondary} />
+        <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Creating account...</Text>
       </View>
     );
@@ -195,7 +195,7 @@ const RegisterScreen: React.FC = () => {
                 ]}
               >
                 <View style={styles.logoIcon}>
-                  <Icon name="person-add" size={32} color={COLORS.secondary} />
+                  <Icon name="person-add" size={32} color={COLORS.primary} />
                 </View>
               </Animated.View>
               <Text style={styles.title}>Create Account</Text>
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 0,
-    shadowColor: COLORS.secondary,
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: COLORS.secondary + '15',
+    backgroundColor: COLORS.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   termsLink: {
-    color: COLORS.secondary,
+    color: COLORS.primary,
     fontWeight: '500',
   },
   footer: {
