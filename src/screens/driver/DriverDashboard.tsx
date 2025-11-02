@@ -90,7 +90,7 @@ const DriverDashboard: React.FC = () => {
       if (distance > 100) {
         Alert.alert(
           'Location Verification Failed',
-          `You must be at the parking location to perform this action. Current distance: ${distance.toFixed(1)} meters. Required: within 100 meters.`
+          `You must be at the parking location to perform this action.`
         );
         return false;
       }
@@ -276,11 +276,11 @@ const DriverDashboard: React.FC = () => {
           request.locationFrom.longitude
         );
 
-        // For park requests, still use 10 meters range to pickup from customer
-        if (distance > 10) {
+        // For park requests, still use 25 meters range to pickup from customer
+        if (distance > 70) {
           Alert.alert(
             'Location Verification Failed',
-            `You must be at the customer's location to accept this parking request. Current distance: ${distance.toFixed(1)} meters.`
+            `You must be at the customer's location to accept this parking request.`
           );
           return;
         }
