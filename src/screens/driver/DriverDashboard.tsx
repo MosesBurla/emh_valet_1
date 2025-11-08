@@ -11,6 +11,9 @@ import {
   StatusBar,
   AppState,
   AppStateStatus,
+  Platform,
+  Linking,
+  BackHandler,
 } from 'react-native';
 import { Surface, Card } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -18,6 +21,8 @@ import Icon1 from 'react-native-vector-icons/FontAwesome5';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import messaging from '@react-native-firebase/messaging';
+import { check, request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
 
 import AccessibleButton from '../../components/AccessibleButton';
 import LoadingSkeleton from '../../components/LoadingSkeleton';
@@ -121,9 +126,73 @@ const DriverDashboard: React.FC = () => {
     }
   };
 
+  // Check notification permissions
+  const checkNotificationPermission = async () => {
+    try {
+      const authStatus = await messaging().hasPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      if (!enabled) {
+        // Show alert if notifications are not enabled
+        Alert.alert(
+          'Notifications Required',
+          'This app requires notification permissions to alert you about new parking requests. Please enable notifications to continue.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => {
+                // Exit the app when user cancels
+                BackHandler.exitApp();
+              },
+            },
+            {
+              text: 'Enable Notifications',
+              onPress: () => {
+                openSettings().catch(() => {
+                  console.warn('Unable to open settings');
+                });
+                // Give user time to enable notifications before exiting
+                setTimeout(() => {
+                  BackHandler.exitApp();
+                }, 1000);
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+      }
+    } catch (error) {
+      console.error('Error checking notification permission:', error);
+    }
+  };
+
   useEffect(() => {
+    // Check notification permission on mount
+    checkNotificationPermission();
+
     loadRequests();
     setupSocketListeners();
+
+    // Handle notification opens
+    const unsubscribeOnNotificationOpened = messaging().onNotificationOpenedApp(remoteMessage => {
+      console.log('Notification caused app to open from background state:', remoteMessage);
+      // Refresh dashboard when opened from notification
+      loadRequests();
+    });
+
+    // Check whether an initial notification is available
+    messaging()
+      .getInitialNotification()
+      .then(remoteMessage => {
+        if (remoteMessage) {
+          console.log('Notification caused app to open from quit state:', remoteMessage);
+          // Refresh dashboard when opened from notification
+          loadRequests();
+        }
+      });
 
     // App state listener to handle background/foreground transitions
     const appStateSubscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
@@ -145,6 +214,7 @@ const DriverDashboard: React.FC = () => {
       SocketService.off('new-pickup-request');
       SocketService.off('request_updated');
       SocketService.off('request-accepted');
+      unsubscribeOnNotificationOpened();
       appStateSubscription.remove();
     };
   }, []);
@@ -374,8 +444,6 @@ const DriverDashboard: React.FC = () => {
     }
   };
 
-
-
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -403,9 +471,13 @@ const DriverDashboard: React.FC = () => {
               <Text style={styles.headerSubtitle}>Ready to handle requests</Text>
             </View>
           </View>
-          
+          <TouchableOpacity style={styles.headerAction} onPress={() => {
+            openSettings().catch(() => {
+              console.warn('Unable to open settings');
+            });
+          }}>
             <Icon1 name="dove" size={24} color="#FFFFFF" />
-          
+          </TouchableOpacity>
         </View>
       </View>
 
